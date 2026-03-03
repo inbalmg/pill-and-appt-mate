@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { format, addDays, isSameDay, isToday, parseISO, getDay } from 'date-fns';
+import { format, addDays, isSameDay, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
 import { Plus, Pill, Stethoscope, CalendarDays, Edit, Trash2 } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
@@ -163,11 +163,20 @@ const Index = () => {
       <div className="px-4 mt-5 space-y-3">
         <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
           <CalendarDays className="w-5 h-5 text-primary" />
-          {isToday(selectedDate)
-            ? 'היום'
-            : format(selectedDate, 'EEEE, d בMMMM', { locale: undefined })}
+          {(() => {
+            const MONTH_NAMES_HE = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+            const DAY_NAMES_HE = ["יום א'", "יום ב'", "יום ג'", "יום ד'", "יום ה'", "יום ו'", 'שבת'];
+            const day = selectedDate.getDate();
+            const monthName = MONTH_NAMES_HE[selectedDate.getMonth()];
+            const datePart = `${day} ב${monthName}`;
+            const today = startOfDay(new Date());
+            const sel = startOfDay(selectedDate);
+            if (isToday(sel)) return `היום, ${datePart}`;
+            if (isTomorrow(sel)) return `מחר, ${datePart}`;
+            return `${DAY_NAMES_HE[sel.getDay()]}, ${datePart}`;
+          })()}
           <span className="text-sm font-normal text-muted-foreground mr-auto">
-            {dateKey}
+            {format(selectedDate, 'dd-MM-yyyy')}
           </span>
         </h1>
 
