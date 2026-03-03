@@ -49,7 +49,8 @@ const Index = () => {
     const selDateStr = format(selDate, 'yyyy-MM-dd');
 
     medications.forEach(med => {
-      if (selDateStr < med.startDate || selDateStr > med.endDate) return;
+      if (selDateStr < med.startDate) return;
+      if (med.endDate && selDateStr > med.endDate) return;
 
       if (med.frequency === 'daily') {
         med.times.forEach(time => {

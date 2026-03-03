@@ -39,12 +39,10 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
   const validate = (): boolean => {
     const errs: string[] = [];
     if (!name.trim()) errs.push('שם התרופה חובה');
-    if (!dosage.trim()) errs.push('מינון חובה');
     if (times.length === 0) errs.push('יש להוסיף לפחות שעה אחת');
     if (!startDate) errs.push('תאריך התחלה חובה');
-    if (!endDate) errs.push('תאריך סיום חובה');
-    if (startDate && endDate && endDate < startDate) errs.push('תאריך סיום חייב להיות אחרי תאריך ההתחלה');
-    if (frequency === 'once' && startDate !== endDate) errs.push('באירוע חד פעמי התאריכים חייבים להיות זהים');
+    if (endDate && startDate && endDate < startDate) errs.push('תאריך סיום חייב להיות אחרי תאריך ההתחלה');
+    if (frequency === 'once' && endDate && startDate !== endDate) errs.push('באירוע חד פעמי התאריכים חייבים להיות זהים');
 
     // Check duplicate times
     const uniqueTimes = new Set(times);
@@ -61,12 +59,12 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
     onSave({
       id: editingMedication?.id || crypto.randomUUID(),
       name: name.trim(),
-      dosage: dosage.trim(),
+      dosage: dosage.trim() || undefined,
       times,
       frequency,
       weekDay: frequency === 'weekly' ? weekDay : undefined,
       startDate,
-      endDate,
+      endDate: endDate || undefined,
       notes: notes.trim(),
       instruction: instruction.trim(),
       reminderMinutes,
@@ -105,7 +103,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
           </div>
 
           <div>
-            <Label>מינון *</Label>
+            <Label>מינון</Label>
             <Input value={dosage} onChange={(e) => setDosage(e.target.value)} placeholder="לדוגמא: 20mg" className="mt-1" />
           </div>
 
@@ -186,7 +184,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
               }} className="mt-1" />
             </div>
             <div>
-              <Label>תאריך סיום *</Label>
+              <Label>תאריך סיום</Label>
               <Input
                 type="date"
                 value={endDate}
