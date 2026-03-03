@@ -36,7 +36,7 @@ const Index = () => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [selectedDate]);
 
-  const dateKey = format(selectedDate, 'dd-MM-yyyy');
+  const dateKey = format(selectedDate, 'yyyy-MM-dd');
 
   const shiftRange = useCallback((direction: 'forward' | 'backward') => {
     setRangeStart(prev => addDays(prev, direction === 'forward' ? 7 : -7));
