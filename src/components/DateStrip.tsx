@@ -21,7 +21,7 @@ const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onSelectDate, range
     <div className="medical-gradient rounded-b-2xl px-3 pt-4 pb-5 card-shadow">
       <div className="flex items-center justify-between mb-3 px-1">
         <button
-          onClick={() => onShiftRange('forward')}
+          onClick={() => onShiftRange('backward')}
           className="p-1.5 rounded-full bg-primary-foreground/20 hover:bg-primary-foreground/30 transition-colors"
         >
           <ChevronRight className="w-5 h-5 text-primary-foreground" />
@@ -30,7 +30,7 @@ const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onSelectDate, range
           {format(selectedDate, 'MMMM yyyy', { locale: he })}
         </h2>
         <button
-          onClick={() => onShiftRange('backward')}
+          onClick={() => onShiftRange('forward')}
           className="p-1.5 rounded-full bg-primary-foreground/20 hover:bg-primary-foreground/30 transition-colors"
         >
           <ChevronLeft className="w-5 h-5 text-primary-foreground" />

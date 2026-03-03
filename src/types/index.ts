@@ -1,12 +1,12 @@
 export interface Medication {
   id: string;
   name: string;
-  dosage: string;
+  dosage?: string;
   times: string[]; // e.g. ["08:00", "20:00"]
   frequency: 'daily' | 'weekly' | 'once';
   weekDay?: number; // 0-6 for weekly
   startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
   notes: string;
   reminderMinutes: number; // minutes before
   instruction?: string; // e.g. "לפני הארוחה"

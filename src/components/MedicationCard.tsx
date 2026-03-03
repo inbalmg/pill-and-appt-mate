@@ -40,8 +40,12 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
           <div className="flex items-center gap-1.5 text-muted-foreground text-sm mb-1.5">
             <Clock className="w-3.5 h-3.5" />
             <span>{time}</span>
-            <span className="mx-1">•</span>
-            <span>{medication.dosage}</span>
+            {medication.dosage && (
+              <>
+                <span className="mx-1">•</span>
+                <span>{medication.dosage}</span>
+              </>
+            )}
           </div>
 
           {medication.instruction && (
@@ -52,7 +56,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
 
           <div className="flex gap-3 text-xs text-muted-foreground mt-2">
             <span>מ: {medication.startDate}</span>
-            <span>עד: {medication.endDate}</span>
+            {medication.endDate && <span>עד: {medication.endDate}</span>}
           </div>
         </div>
       </div>
