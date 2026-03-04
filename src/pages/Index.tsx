@@ -27,6 +27,19 @@ const Index = () => {
   const [completions, setCompletions] = useLocalStorage<CompletionRecord>('completions', {});
   const [arrivals, setArrivals] = useLocalStorage<ArrivalRecord>('arrivals', {});
 
+  const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker } = useNotifications();
+
+  // Start notification checker when subscribed
+  useEffect(() => {
+    if (isSubscribed) {
+      const cleanup = startNotificationChecker(
+        () => medications,
+        () => appointments,
+      );
+      return cleanup;
+    }
+  }, [isSubscribed, medications, appointments, startNotificationChecker]);
+
   // Seed data once on first load
   useEffect(() => {
     if (!localStorage.getItem(SEED_KEY)) {
