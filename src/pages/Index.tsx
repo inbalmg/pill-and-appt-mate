@@ -213,6 +213,20 @@ const Index = () => {
           <span className="text-sm font-normal text-muted-foreground mr-auto flex items-center gap-2">
             {format(selectedDate, 'dd-MM-yyyy')}
             <button
+              onClick={async () => {
+                if (isSubscribed) {
+                  await unsubscribe();
+                } else {
+                  await subscribe();
+                }
+              }}
+              disabled={isLoading}
+              className={`p-1.5 rounded-lg transition-colors ${isSubscribed ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+              title={isSubscribed ? 'התראות פעילות - לחץ לכיבוי' : 'אפשר התראות'}
+            >
+              {isSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </button>
+            <button
               onClick={handleReset}
               className="p-1.5 rounded-lg hover:bg-muted transition-colors"
               title="איפוס נתונים"
