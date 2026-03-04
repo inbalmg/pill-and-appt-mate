@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isSameDay, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, Edit, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, Edit, Trash2, RotateCcw, Bell, BellOff } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
 import AddMedicationForm from '@/components/AddMedicationForm';
 import AddAppointmentForm from '@/components/AddAppointmentForm';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useNotifications } from '@/hooks/useNotifications';
 import { defaultMedications, defaultAppointments } from '@/data/seedData';
 import type { Medication, Appointment, CompletionRecord, ArrivalRecord, MedicationInstance } from '@/types';
 
@@ -25,6 +26,19 @@ const Index = () => {
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
   const [completions, setCompletions] = useLocalStorage<CompletionRecord>('completions', {});
   const [arrivals, setArrivals] = useLocalStorage<ArrivalRecord>('arrivals', {});
+
+  const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker } = useNotifications();
+
+  // Start notification checker when subscribed
+  useEffect(() => {
+    if (isSubscribed) {
+      const cleanup = startNotificationChecker(
+        () => medications,
+        () => appointments,
+      );
+      return cleanup;
+    }
+  }, [isSubscribed, medications, appointments, startNotificationChecker]);
 
   // Seed data once on first load
   useEffect(() => {
@@ -198,6 +212,20 @@ const Index = () => {
           })()}
           <span className="text-sm font-normal text-muted-foreground mr-auto flex items-center gap-2">
             {format(selectedDate, 'dd-MM-yyyy')}
+            <button
+              onClick={async () => {
+                if (isSubscribed) {
+                  await unsubscribe();
+                } else {
+                  await subscribe();
+                }
+              }}
+              disabled={isLoading}
+              className={`p-1.5 rounded-lg transition-colors ${isSubscribed ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+              title={isSubscribed ? 'התראות פעילות - לחץ לכיבוי' : 'אפשר התראות'}
+            >
+              {isSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </button>
             <button
               onClick={handleReset}
               className="p-1.5 rounded-lg hover:bg-muted transition-colors"
