@@ -1,13 +1,16 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isSameDay, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, Edit, Trash2 } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, Edit, Trash2, RotateCcw } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
 import AddMedicationForm from '@/components/AddMedicationForm';
 import AddAppointmentForm from '@/components/AddAppointmentForm';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { defaultMedications, defaultAppointments } from '@/data/seedData';
 import type { Medication, Appointment, CompletionRecord, ArrivalRecord, MedicationInstance } from '@/types';
+
+const SEED_KEY = 'data_seeded';
 
 const Index = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -22,6 +25,24 @@ const Index = () => {
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
   const [completions, setCompletions] = useLocalStorage<CompletionRecord>('completions', {});
   const [arrivals, setArrivals] = useLocalStorage<ArrivalRecord>('arrivals', {});
+
+  // Seed data once on first load
+  useEffect(() => {
+    if (!localStorage.getItem(SEED_KEY)) {
+      setMedications(defaultMedications);
+      setAppointments(defaultAppointments);
+      localStorage.setItem(SEED_KEY, 'true');
+    }
+  }, []);
+
+  const handleReset = () => {
+    if (window.confirm('האם לאפס את כל הנתונים למצב הראשוני?')) {
+      setMedications(defaultMedications);
+      setAppointments(defaultAppointments);
+      setCompletions({});
+      setArrivals({});
+    }
+  };
 
   // Reset to today when returning
   useEffect(() => {
