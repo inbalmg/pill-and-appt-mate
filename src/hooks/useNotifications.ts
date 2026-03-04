@@ -57,7 +57,7 @@ export function useNotifications() {
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: vapidPublicKey,
+        applicationServerKey: vapidPublicKey.buffer as ArrayBuffer,
       });
 
       const subJson = subscription.toJSON();
