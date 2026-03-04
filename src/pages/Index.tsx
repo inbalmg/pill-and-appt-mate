@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isSameDay, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, Edit, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, Edit, Trash2, RotateCcw, Bell, BellOff } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
 import AddMedicationForm from '@/components/AddMedicationForm';
 import AddAppointmentForm from '@/components/AddAppointmentForm';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useNotifications } from '@/hooks/useNotifications';
 import { defaultMedications, defaultAppointments } from '@/data/seedData';
 import type { Medication, Appointment, CompletionRecord, ArrivalRecord, MedicationInstance } from '@/types';
 
