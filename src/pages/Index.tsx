@@ -196,8 +196,15 @@ const Index = () => {
             if (isTomorrow(sel)) return `מחר, ${datePart}`;
             return `${DAY_NAMES_HE[sel.getDay()]}, ${datePart}`;
           })()}
-          <span className="text-sm font-normal text-muted-foreground mr-auto">
+          <span className="text-sm font-normal text-muted-foreground mr-auto flex items-center gap-2">
             {format(selectedDate, 'dd-MM-yyyy')}
+            <button
+              onClick={handleReset}
+              className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+              title="איפוס נתונים"
+            >
+              <RotateCcw className="w-4 h-4 text-muted-foreground" />
+            </button>
           </span>
         </h1>
 
