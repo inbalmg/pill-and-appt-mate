@@ -8,6 +8,8 @@ interface DateStripProps {
   onSelectDate: (date: Date) => void;
   rangeStart: Date;
   onShiftRange: (direction: 'forward' | 'backward') => void;
+  onGoToToday: () => void;
+  showTodayButton: boolean;
 }
 
 const DAY_NAMES_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
