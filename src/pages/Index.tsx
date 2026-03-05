@@ -192,10 +192,16 @@ const Index = () => {
         onSelectDate={setSelectedDate}
         rangeStart={rangeStart}
         onShiftRange={shiftRange}
+        onGoToToday={() => {
+          const now = new Date();
+          setSelectedDate(now);
+          setRangeStart(addDays(now, -2));
+        }}
+        showTodayButton={!isToday(selectedDate) || rangeStart.toDateString() !== addDays(new Date(), -2).toDateString()}
       />
 
       {/* Content */}
-      <div className="px-4 mt-5 space-y-3">
+      <div className="px-4 mt-5 space-y-3 min-h-[calc(100vh-200px)]">
         <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
           <CalendarDays className="w-5 h-5 text-primary" />
           {(() => {

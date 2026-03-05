@@ -8,11 +8,13 @@ interface DateStripProps {
   onSelectDate: (date: Date) => void;
   rangeStart: Date;
   onShiftRange: (direction: 'forward' | 'backward') => void;
+  onGoToToday: () => void;
+  showTodayButton: boolean;
 }
 
 const DAY_NAMES_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 
-const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onSelectDate, rangeStart, onShiftRange }) => {
+const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onSelectDate, rangeStart, onShiftRange, onGoToToday, showTodayButton }) => {
   const days = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(rangeStart, i));
   }, [rangeStart]);
@@ -26,9 +28,19 @@ const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onSelectDate, range
         >
           <ChevronRight className="w-5 h-5 text-primary-foreground" />
         </button>
-        <h2 className="text-primary-foreground font-semibold text-lg">
-          {format(selectedDate, 'MMMM yyyy', { locale: he })}
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-primary-foreground font-semibold text-lg">
+            {format(selectedDate, 'MMMM yyyy', { locale: he })}
+          </h2>
+          {showTodayButton && (
+            <button
+              onClick={onGoToToday}
+              className="text-xs font-medium bg-primary-foreground/25 hover:bg-primary-foreground/35 text-primary-foreground px-2.5 py-1 rounded-full transition-colors"
+            >
+              היום
+            </button>
+          )}
+        </div>
         <button
           onClick={() => onShiftRange('forward')}
           className="p-1.5 rounded-full bg-primary-foreground/20 hover:bg-primary-foreground/30 transition-colors"
