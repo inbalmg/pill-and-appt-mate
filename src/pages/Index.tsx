@@ -192,6 +192,12 @@ const Index = () => {
         onSelectDate={setSelectedDate}
         rangeStart={rangeStart}
         onShiftRange={shiftRange}
+        onGoToToday={() => {
+          const now = new Date();
+          setSelectedDate(now);
+          setRangeStart(addDays(now, -2));
+        }}
+        showTodayButton={!isToday(selectedDate) || rangeStart.toDateString() !== addDays(new Date(), -2).toDateString()}
       />
 
       {/* Content */}
