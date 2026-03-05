@@ -10,6 +10,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { defaultMedications, defaultAppointments } from '@/data/seedData';
 import type { Medication, Appointment, CompletionRecord, ArrivalRecord, MedicationInstance } from '@/types';
+import InstallBanner from '@/components/InstallBanner';
 
 const SEED_KEY = 'data_seeded';
 
@@ -362,6 +363,7 @@ const Index = () => {
           editingMedication={editingMed}
         />
       )}
+      <InstallBanner />
       {showApptForm && (
         <AddAppointmentForm
           onSave={saveAppointment}
