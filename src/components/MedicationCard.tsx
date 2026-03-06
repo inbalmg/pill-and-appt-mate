@@ -12,9 +12,9 @@ interface MedicationCardProps {
 const getTimeIcon = (time: string) => {
   const hour = parseInt(time.split(':')[0], 10);
   if (hour >= 5 && hour < 17) {
-    return <Sun className="w-4 h-4 text-amber-500" />;
+    return <Sun className="w-4 h-4 text-warning" />;
   }
-  return <Moon className="w-4 h-4 text-indigo-400" />;
+  return <Moon className="w-4 h-4 text-primary" />;
 };
 
 const MedicationCard: React.FC<MedicationCardProps> = ({
