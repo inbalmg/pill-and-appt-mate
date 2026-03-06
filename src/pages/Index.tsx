@@ -218,7 +218,7 @@ const Index = () => {
             if (isTomorrow(sel)) return `מחר, ${datePart}`;
             return `${DAY_NAMES_HE[sel.getDay()]}, ${datePart}`;
           })()}
-          <span className="text-sm font-normal text-muted-foreground mr-auto flex items-center gap-2">
+          <span className="text-sm font-normal text-muted-foreground ms-auto flex items-center gap-2">
             {format(selectedDate, 'dd-MM-yyyy')}
             <button
               onClick={async () => {
@@ -275,7 +275,7 @@ const Index = () => {
                       completed={!!completions[dateKey]?.[`${inst.medicationId}_${inst.time}`]}
                       onToggleComplete={() => toggleCompletion(inst.medicationId, inst.time)}
                     />
-                    <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 start-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => { setEditingMed(inst.medication); setShowMedForm(true); }}
                         className="p-1.5 rounded-lg bg-muted hover:bg-secondary transition-colors"
@@ -314,7 +314,7 @@ const Index = () => {
                       arrived={!!arrivals[dateKey]?.[appt.id]}
                       onMarkArrival={() => toggleArrival(appt.id)}
                     />
-                    <div className="absolute top-3 left-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-3 start-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => { setEditingAppt(appt); setShowApptForm(true); }}
                         className="p-1.5 rounded-lg bg-muted hover:bg-secondary transition-colors"

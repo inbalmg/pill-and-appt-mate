@@ -47,7 +47,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
             )}
           </div>
           {medication.instruction && (
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 text-start">
               {medication.instruction}
             </p>
           )}

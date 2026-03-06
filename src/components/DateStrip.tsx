@@ -66,7 +66,7 @@ const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onSelectDate, range
                     : 'text-primary-foreground/80 hover:bg-primary-foreground/15'
                 }`}
             >
-              <span className="text-xs font-medium mb-0.5">
+              <span className="text-xs font-medium mb-0.5 text-center">
                 {DAY_NAMES_HE[day.getDay()]}
               </span>
               <span className={`text-lg font-bold ${isSelected ? '' : ''}`}>

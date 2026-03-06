@@ -23,7 +23,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-base text-card-foreground mb-1">
+          <h3 className="font-semibold text-base text-card-foreground mb-1 text-start">
             {appointment.type}
           </h3>
 

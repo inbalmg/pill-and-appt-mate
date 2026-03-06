@@ -56,7 +56,7 @@ const AddAppointmentForm: React.FC<AddAppointmentFormProps> = ({ onSave, onClose
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-foreground">
+          <h2 className="text-xl font-bold text-foreground text-start">
             {editingAppointment ? 'עריכת תור' : 'הוספת תור'}
           </h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-muted transition-colors">
