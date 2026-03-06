@@ -18,10 +18,6 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   return (
     <div className="bg-card rounded-2xl p-4 card-shadow border border-medical/20">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl medical-gradient flex items-center justify-center shrink-0">
-          <Stethoscope className="w-5 h-5 text-primary-foreground" />
-        </div>
-
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-base text-card-foreground mb-1 text-start">
             {appointment.type}
