@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pill, Clock, Check } from 'lucide-react';
+import { Check, Sun, Moon } from 'lucide-react';
 import type { Medication } from '@/types';
 
 interface MedicationCardProps {
@@ -9,6 +9,14 @@ interface MedicationCardProps {
   onToggleComplete: () => void;
 }
 
+const getTimeIcon = (time: string) => {
+  const hour = parseInt(time.split(':')[0], 10);
+  if (hour >= 5 && hour < 17) {
+    return <Sun className="w-4 h-4 text-amber-500" />;
+  }
+  return <Moon className="w-4 h-4 text-indigo-400" />;
+};
+
 const MedicationCard: React.FC<MedicationCardProps> = ({
   medication,
   time,
@@ -16,48 +24,38 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
   onToggleComplete,
 }) => {
   return (
-    <div className={`bg-card rounded-2xl p-4 card-shadow border transition-all duration-200 ${completed ? 'opacity-70 border-success/30' : 'border-border'}`}>
-      <div className="flex items-start gap-3">
+    <div className={`bg-card rounded-xl px-3 py-2.5 card-shadow border transition-all duration-200 ${completed ? 'opacity-60 border-success/30' : 'border-border'}`}>
+      <div className="flex items-center gap-3">
         <button
           onClick={onToggleComplete}
-          className={`mt-0.5 w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200
+          className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200
             ${completed
               ? 'bg-success border-success'
               : 'border-primary/40 hover:border-primary hover:bg-primary/10'
             }`}
         >
-          {completed && <Check className="w-4 h-4 text-success-foreground" />}
+          {completed && <Check className="w-3.5 h-3.5 text-success-foreground" />}
         </button>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Pill className="w-4 h-4 text-primary shrink-0" />
-            <h3 className={`font-semibold text-base text-card-foreground ${completed ? 'line-through' : ''}`}>
+          <div className="flex items-center gap-2">
+            <h3 className={`font-semibold text-[15px] text-card-foreground leading-tight ${completed ? 'line-through' : ''}`}>
               {medication.name}
             </h3>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-muted-foreground text-sm mb-1.5">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{time}</span>
             {medication.dosage && (
-              <>
-                <span className="mx-1">•</span>
-                <span>{medication.dosage}</span>
-              </>
+              <span className="text-xs text-muted-foreground">{medication.dosage}</span>
             )}
           </div>
-
           {medication.instruction && (
-            <p className="text-xs text-accent-foreground bg-accent rounded-lg px-2.5 py-1.5 mt-1">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {medication.instruction}
             </p>
           )}
+        </div>
 
-          <div className="flex gap-3 text-xs text-muted-foreground mt-2">
-            <span>מ: {medication.startDate}</span>
-            {medication.endDate && <span>עד: {medication.endDate}</span>}
-          </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {getTimeIcon(time)}
+          <span className="text-sm font-medium text-muted-foreground">{time}</span>
         </div>
       </div>
     </div>

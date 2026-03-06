@@ -6,6 +6,8 @@ import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
 import AddMedicationForm from '@/components/AddMedicationForm';
 import AddAppointmentForm from '@/components/AddAppointmentForm';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { defaultMedications, defaultAppointments } from '@/data/seedData';
@@ -183,7 +185,7 @@ const Index = () => {
     return now >= apptTime;
   };
 
-  const hasEvents = dailyMedInstances.length > 0 || dailyAppointments.length > 0;
+  
 
   return (
     <div className="min-h-screen bg-background pb-24 max-w-md mx-auto">
@@ -202,8 +204,8 @@ const Index = () => {
       />
 
       {/* Content */}
-      <div className="px-4 mt-5 space-y-3 min-h-[calc(100vh-200px)]">
-        <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
+      <div className="px-4 mt-5 min-h-[calc(100vh-200px)]">
+        <h1 className="text-lg font-bold text-foreground flex items-center gap-2 mb-3">
           <CalendarDays className="w-5 h-5 text-primary" />
           {(() => {
             const MONTH_NAMES_HE = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
@@ -211,7 +213,6 @@ const Index = () => {
             const day = selectedDate.getDate();
             const monthName = MONTH_NAMES_HE[selectedDate.getMonth()];
             const datePart = `${day} ב${monthName}`;
-            const today = startOfDay(new Date());
             const sel = startOfDay(selectedDate);
             if (isToday(sel)) return `היום, ${datePart}`;
             if (isTomorrow(sel)) return `מחר, ${datePart}`;
@@ -243,81 +244,96 @@ const Index = () => {
           </span>
         </h1>
 
-        {!hasEvents && (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-              <CalendarDays className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground text-base">אין אירועים ליום זה</p>
-            <p className="text-muted-foreground/60 text-sm mt-1">לחץ על + להוספת תרופה או תור</p>
-          </div>
-        )}
+        <Tabs defaultValue="medications" className="w-full">
+          <TabsList className="w-full grid grid-cols-2 mb-3">
+            <TabsTrigger value="medications" className="flex items-center gap-1.5">
+              <Pill className="w-4 h-4" />
+              תרופות
+            </TabsTrigger>
+            <TabsTrigger value="appointments" className="flex items-center gap-1.5">
+              <Stethoscope className="w-4 h-4" />
+              {dailyAppointments.length > 0 ? `תורים (${dailyAppointments.length})` : 'תורים'}
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Medications */}
-        {dailyMedInstances.length > 0 && (
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
-              <Pill className="w-4 h-4" /> תרופות
-            </h2>
-            {dailyMedInstances.map((inst) => (
-              <div key={`${inst.medicationId}_${inst.time}`} className="relative group">
-                <MedicationCard
-                  medication={inst.medication}
-                  time={inst.time}
-                  completed={!!completions[dateKey]?.[`${inst.medicationId}_${inst.time}`]}
-                  onToggleComplete={() => toggleCompletion(inst.medicationId, inst.time)}
-                />
-                <div className="absolute top-3 left-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => { setEditingMed(inst.medication); setShowMedForm(true); }}
-                    className="p-1.5 rounded-lg bg-muted hover:bg-secondary transition-colors"
-                  >
-                    <Edit className="w-3.5 h-3.5 text-muted-foreground" />
-                  </button>
-                  <button
-                    onClick={() => deleteMedication(inst.medicationId)}
-                    className="p-1.5 rounded-lg bg-muted hover:bg-destructive/10 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                  </button>
+          <TabsContent value="medications">
+            {dailyMedInstances.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-14 h-14 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
+                  <Pill className="w-7 h-7 text-muted-foreground" />
                 </div>
+                <p className="text-muted-foreground text-base">אין תרופות ליום זה</p>
+                <p className="text-muted-foreground/60 text-sm mt-1">לחץ על + להוספת תרופה</p>
               </div>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-2">
+                {dailyMedInstances.map((inst) => (
+                  <div key={`${inst.medicationId}_${inst.time}`} className="relative group">
+                    <MedicationCard
+                      medication={inst.medication}
+                      time={inst.time}
+                      completed={!!completions[dateKey]?.[`${inst.medicationId}_${inst.time}`]}
+                      onToggleComplete={() => toggleCompletion(inst.medicationId, inst.time)}
+                    />
+                    <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => { setEditingMed(inst.medication); setShowMedForm(true); }}
+                        className="p-1.5 rounded-lg bg-muted hover:bg-secondary transition-colors"
+                      >
+                        <Edit className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={() => deleteMedication(inst.medicationId)}
+                        className="p-1.5 rounded-lg bg-muted hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
-        {/* Appointments */}
-        {dailyAppointments.length > 0 && (
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
-              <Stethoscope className="w-4 h-4" /> תורים
-            </h2>
-            {dailyAppointments.map((appt) => (
-              <div key={appt.id} className="relative group">
-                <AppointmentCard
-                  appointment={appt}
-                  canMarkArrival={canMarkArrival(appt)}
-                  arrived={!!arrivals[dateKey]?.[appt.id]}
-                  onMarkArrival={() => toggleArrival(appt.id)}
-                />
-                <div className="absolute top-3 left-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => { setEditingAppt(appt); setShowApptForm(true); }}
-                    className="p-1.5 rounded-lg bg-muted hover:bg-secondary transition-colors"
-                  >
-                    <Edit className="w-3.5 h-3.5 text-muted-foreground" />
-                  </button>
-                  <button
-                    onClick={() => deleteAppointment(appt.id)}
-                    className="p-1.5 rounded-lg bg-muted hover:bg-destructive/10 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                  </button>
+          <TabsContent value="appointments">
+            {dailyAppointments.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-14 h-14 rounded-full bg-muted mx-auto mb-3 flex items-center justify-center">
+                  <Stethoscope className="w-7 h-7 text-muted-foreground" />
                 </div>
+                <p className="text-muted-foreground text-base">אין תורים ליום זה</p>
+                <p className="text-muted-foreground/60 text-sm mt-1">לחץ על + להוספת תור</p>
               </div>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-2">
+                {dailyAppointments.map((appt) => (
+                  <div key={appt.id} className="relative group">
+                    <AppointmentCard
+                      appointment={appt}
+                      canMarkArrival={canMarkArrival(appt)}
+                      arrived={!!arrivals[dateKey]?.[appt.id]}
+                      onMarkArrival={() => toggleArrival(appt.id)}
+                    />
+                    <div className="absolute top-3 left-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => { setEditingAppt(appt); setShowApptForm(true); }}
+                        className="p-1.5 rounded-lg bg-muted hover:bg-secondary transition-colors"
+                      >
+                        <Edit className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={() => deleteAppointment(appt.id)}
+                        className="p-1.5 rounded-lg bg-muted hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* FAB */}
