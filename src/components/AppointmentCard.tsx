@@ -18,10 +18,6 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   return (
     <div className="bg-card rounded-2xl p-4 card-shadow border border-medical/20">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl medical-gradient flex items-center justify-center shrink-0">
-          <Stethoscope className="w-5 h-5 text-primary-foreground" />
-        </div>
-
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-base text-card-foreground mb-1 text-start">
             {appointment.type}
@@ -50,22 +46,27 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
           )}
         </div>
 
-        {canMarkArrival && (
-          <button
-            onClick={onMarkArrival}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all
-              ${arrived
-                ? 'bg-success text-success-foreground'
-                : 'bg-medical/10 text-medical hover:bg-medical/20'
-              }`}
-          >
-            {arrived ? (
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> הגעתי
-              </span>
-            ) : 'סמן הגעה'}
-          </button>
-        )}
+        <div className="flex flex-col items-center gap-2 shrink-0">
+          <div className="w-10 h-10 rounded-xl medical-gradient flex items-center justify-center">
+            <Stethoscope className="w-5 h-5 text-primary-foreground" />
+          </div>
+          {canMarkArrival && (
+            <button
+              onClick={onMarkArrival}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all
+                ${arrived
+                  ? 'bg-success text-success-foreground'
+                  : 'bg-medical/10 text-medical hover:bg-medical/20'
+                }`}
+            >
+              {arrived ? (
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> הגעתי
+                </span>
+              ) : 'סמן הגעה'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
