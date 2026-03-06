@@ -6,6 +6,8 @@ import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
 import AddMedicationForm from '@/components/AddMedicationForm';
 import AddAppointmentForm from '@/components/AddAppointmentForm';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { defaultMedications, defaultAppointments } from '@/data/seedData';
