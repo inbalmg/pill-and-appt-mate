@@ -185,7 +185,7 @@ const Index = () => {
     return now >= apptTime;
   };
 
-  const hasEvents = dailyMedInstances.length > 0 || dailyAppointments.length > 0;
+  
 
   return (
     <div className="min-h-screen bg-background pb-24 max-w-md mx-auto">
