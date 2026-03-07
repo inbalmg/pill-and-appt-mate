@@ -24,11 +24,12 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
   onToggleComplete,
 }) => {
   return (
-    <div className={`bg-card rounded-xl px-3 py-2.5 card-shadow border transition-all duration-200 ${completed ? 'opacity-60 border-success/30' : 'border-border'}`}>
+    <div dir="rtl" className={`bg-card rounded-xl px-3 py-2.5 card-shadow border transition-all duration-200 ${completed ? 'opacity-60 border-success/30' : 'border-border'}`}>
       <div className="flex items-center gap-3">
+        {/* Right zone: name + dosage + instruction */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className={`font-semibold text-[15px] text-card-foreground leading-tight text-start ${completed ? 'line-through' : ''}`}>
+            <h3 className={`font-semibold text-[15px] text-card-foreground leading-tight ${completed ? 'line-through' : ''}`}>
               {medication.name}
             </h3>
             {medication.dosage && (
@@ -36,12 +37,13 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
             )}
           </div>
           {medication.instruction && (
-            <p className="text-xs text-muted-foreground mt-0.5 text-start">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {medication.instruction}
             </p>
           )}
         </div>
 
+        {/* Left zone: time icon + time + checkbox */}
         <div className="flex items-center gap-1.5 shrink-0">
           {getTimeIcon(time)}
           <span className="text-sm font-medium text-muted-foreground">{time}</span>
