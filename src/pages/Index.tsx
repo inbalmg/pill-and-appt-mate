@@ -379,6 +379,45 @@ const Index = () => {
           defaultDate={dateKey}
         />
       )}
+
+      {/* Action Sheet */}
+      {actionTarget && (
+        <ActionSheet
+          title={actionTarget.type === 'med' ? actionTarget.med!.name : actionTarget.appt!.type}
+          onEdit={() => {
+            if (actionTarget.type === 'med') {
+              setEditingMed(actionTarget.med!);
+              setShowMedForm(true);
+            } else {
+              setEditingAppt(actionTarget.appt!);
+              setShowApptForm(true);
+            }
+            setActionTarget(null);
+          }}
+          onDelete={() => {
+            const id = actionTarget.type === 'med' ? actionTarget.med!.id : actionTarget.appt!.id;
+            const name = actionTarget.type === 'med' ? actionTarget.med!.name : actionTarget.appt!.type;
+            setConfirmDelete({ type: actionTarget.type, id, name });
+            setActionTarget(null);
+          }}
+          onClose={() => setActionTarget(null)}
+        />
+      )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={confirmDelete?.type === 'med' ? 'מחיקת תרופה' : 'ביטול תור'}
+        description={`האם למחוק את "${confirmDelete?.name || ''}"? פעולה זו אינה ניתנת לביטול.`}
+        onConfirm={() => {
+          if (confirmDelete) {
+            if (confirmDelete.type === 'med') deleteMedication(confirmDelete.id);
+            else deleteAppointment(confirmDelete.id);
+          }
+          setConfirmDelete(null);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 };
