@@ -6,6 +6,7 @@ import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
 import AddMedicationForm from '@/components/AddMedicationForm';
 import AddAppointmentForm from '@/components/AddAppointmentForm';
+import CalendarTab from '@/components/CalendarTab';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
