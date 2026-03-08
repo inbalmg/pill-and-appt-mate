@@ -82,10 +82,27 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className }) =
                 >
                   <ChevronUp className="w-6 h-6 text-muted-foreground" />
                 </button>
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
-                  <span className="text-3xl font-bold text-primary tabular-nums">
-                    {String(tempHour).padStart(2, '0')}
-                  </span>
+                <div
+                  className="w-16 h-16 rounded-2xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center cursor-text"
+                  onClick={() => { setEditingHour(true); setHourInput(String(tempHour).padStart(2, '0')); }}
+                >
+                  {editingHour ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={2}
+                      value={hourInput}
+                      onChange={(e) => setHourInput(e.target.value.replace(/\D/g, ''))}
+                      onBlur={handleHourInputBlur}
+                      onKeyDown={(e) => e.key === 'Enter' && handleHourInputBlur()}
+                      className="w-full h-full text-center text-3xl font-bold text-primary tabular-nums bg-transparent outline-none"
+                    />
+                  ) : (
+                    <span className="text-3xl font-bold text-primary tabular-nums">
+                      {String(tempHour).padStart(2, '0')}
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
