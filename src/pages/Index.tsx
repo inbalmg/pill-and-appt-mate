@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isSameDay, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, RotateCcw, Bell, BellOff, BookOpen } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, RotateCcw, Bell, BellOff, BookOpen, Download } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
@@ -16,6 +16,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { defaultMedications, defaultAppointments } from '@/data/seedData';
 import type { Medication, Appointment, CompletionRecord, ArrivalRecord, MedicationInstance } from '@/types';
 import InstallBanner from '@/components/InstallBanner';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 
 const SEED_KEY = 'data_seeded';
 
@@ -36,6 +37,7 @@ const Index = () => {
   const [arrivals, setArrivals] = useLocalStorage<ArrivalRecord>('arrivals', {});
 
   const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker } = useNotifications();
+  const { canInstall, install } = useInstallPrompt();
 
   // Start notification checker when subscribed
   useEffect(() => {
@@ -248,6 +250,16 @@ const Index = () => {
             </button>
           </span>
         </h1>
+
+        {canInstall && (
+          <button
+            onClick={install}
+            className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-2xl px-4 py-3 mb-3 font-bold text-sm shadow-md hover:opacity-90 transition-opacity"
+          >
+            <Download className="w-5 h-5" />
+            התקן אפליקציה למסך הבית
+          </button>
+        )}
 
         <Tabs defaultValue="journal" dir="rtl" className="w-full">
           <TabsList className="w-full grid grid-cols-3 mb-3">
