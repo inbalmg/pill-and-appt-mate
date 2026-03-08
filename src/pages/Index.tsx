@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, Bell, BellOff, BookOpen, LogOut } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, Bell, BellOff, BookOpen, LogOut, Upload } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
@@ -9,6 +9,7 @@ import AddAppointmentForm from '@/components/AddAppointmentForm';
 import CalendarTab from '@/components/CalendarTab';
 import ActionSheet from '@/components/ActionSheet';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ImportDataDialog from '@/components/ImportDataDialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -22,7 +23,7 @@ const Index = () => {
   const {
     medications, appointments, completions, arrivals, loading,
     saveMedication, saveAppointment, deleteMedication, deleteAppointment,
-    toggleCompletion, toggleArrival,
+    toggleCompletion, toggleArrival, importMedications, importAppointments,
   } = useSupabaseData();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -34,6 +35,7 @@ const Index = () => {
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
   const [actionTarget, setActionTarget] = useState<{ type: 'med' | 'appt'; med?: Medication; appt?: Appointment } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'med' | 'appt'; id: string; name: string } | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker, debouncedSync } = useNotifications();
   
@@ -286,6 +288,13 @@ const Index = () => {
         {showAddMenu && (
           <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-4 duration-200">
             <button
+              onClick={() => { setShowAddMenu(false); setShowImport(true); }}
+              className="flex items-center gap-2 bg-card px-5 py-3 rounded-2xl card-shadow border border-border whitespace-nowrap hover:bg-secondary transition-colors"
+            >
+              <Upload className="w-5 h-5 text-accent-foreground" />
+              <span className="font-medium text-sm">ייבוא מקובץ</span>
+            </button>
+            <button
               onClick={() => { setShowAddMenu(false); setEditingAppt(null); setShowApptForm(true); }}
               className="flex items-center gap-2 bg-card px-5 py-3 rounded-2xl card-shadow border border-border whitespace-nowrap hover:bg-secondary transition-colors"
             >
@@ -325,6 +334,13 @@ const Index = () => {
         />
       )}
       <InstallBanner />
+
+      <ImportDataDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        onImportMedications={importMedications}
+        onImportAppointments={importAppointments}
+      />
       {showApptForm && (
         <AddAppointmentForm
           onSave={handleSaveAppt}
