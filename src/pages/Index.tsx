@@ -7,6 +7,8 @@ import AppointmentCard from '@/components/AppointmentCard';
 import AddMedicationForm from '@/components/AddMedicationForm';
 import AddAppointmentForm from '@/components/AddAppointmentForm';
 import CalendarTab from '@/components/CalendarTab';
+import ActionSheet from '@/components/ActionSheet';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
