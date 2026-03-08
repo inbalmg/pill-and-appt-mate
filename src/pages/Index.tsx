@@ -16,6 +16,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { defaultMedications, defaultAppointments } from '@/data/seedData';
 import type { Medication, Appointment, CompletionRecord, ArrivalRecord, MedicationInstance } from '@/types';
 import InstallBanner from '@/components/InstallBanner';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 
 const SEED_KEY = 'data_seeded';
 
