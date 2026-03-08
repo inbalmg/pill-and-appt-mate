@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, Bell, BellOff, BookOpen, Download, LogOut } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, Bell, BellOff, BookOpen, LogOut } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
@@ -15,7 +15,7 @@ import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/hooks/useAuth';
 import type { Medication, Appointment, MedicationInstance } from '@/types';
 import InstallBanner from '@/components/InstallBanner';
-import { useInstallPrompt } from '@/hooks/useInstallPrompt';
+
 
 const Index = () => {
   const { signOut } = useAuth();
@@ -36,7 +36,7 @@ const Index = () => {
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'med' | 'appt'; id: string; name: string } | null>(null);
 
   const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker, debouncedSync } = useNotifications();
-  const { canInstall, install } = useInstallPrompt();
+  
 
   // Start notification checker when subscribed
   useEffect(() => {
@@ -201,15 +201,6 @@ const Index = () => {
           </span>
         </h1>
 
-        {canInstall && (
-          <button
-            onClick={install}
-            className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-2xl px-4 py-3 mb-3 font-bold text-sm shadow-md hover:opacity-90 transition-opacity"
-          >
-            <Download className="w-5 h-5" />
-            התקן אפליקציה למסך הבית
-          </button>
-        )}
 
         <Tabs defaultValue="journal" dir="rtl" className="w-full">
           <TabsList className="w-full grid grid-cols-3 mb-3">
