@@ -31,14 +31,10 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
   // Filter appointments
   const filteredAppointments = useMemo(() => {
     return appointments.filter(a => {
-      const matchesSearch = searchQuery === '' ||
-        a.type.includes(searchQuery) ||
-        a.doctor.includes(searchQuery) ||
-        a.location.includes(searchQuery);
       const matchesFilter = filterType === 'all' || a.type === filterType;
-      return matchesSearch && matchesFilter;
+      return matchesFilter;
     });
-  }, [appointments, searchQuery, filterType]);
+  }, [appointments, filterType]);
 
   // Get appointments for a specific date
   const getAppointmentsForDate = (date: Date) => {
