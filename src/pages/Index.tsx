@@ -244,7 +244,7 @@ const Index = () => {
           </span>
         </h1>
 
-        <Tabs defaultValue="medications" className="w-full">
+        <Tabs defaultValue="medications" dir="rtl" className="w-full">
           <TabsList className="w-full grid grid-cols-2 mb-3">
             <TabsTrigger value="medications" className="flex items-center gap-1.5">
               <Pill className="w-4 h-4" />
@@ -275,18 +275,18 @@ const Index = () => {
                       completed={!!completions[dateKey]?.[`${inst.medicationId}_${inst.time}`]}
                       onToggleComplete={() => toggleCompletion(inst.medicationId, inst.time)}
                     />
-                    <div className="absolute top-2 start-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 start-2 bottom-2 flex flex-col justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => { setEditingMed(inst.medication); setShowMedForm(true); }}
-                        className="p-1.5 rounded-lg bg-muted hover:bg-secondary transition-colors"
+                        className="p-1 rounded-lg bg-muted hover:bg-secondary transition-colors"
                       >
-                        <Edit className="w-3.5 h-3.5 text-muted-foreground" />
+                        <Edit className="w-3 h-3 text-muted-foreground" />
                       </button>
                       <button
                         onClick={() => deleteMedication(inst.medicationId)}
-                        className="p-1.5 rounded-lg bg-muted hover:bg-destructive/10 transition-colors"
+                        className="p-1 rounded-lg bg-muted hover:bg-destructive/10 transition-colors"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        <Trash2 className="w-3 h-3 text-destructive" />
                       </button>
                     </div>
                   </div>

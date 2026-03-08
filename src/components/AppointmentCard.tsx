@@ -16,20 +16,21 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   onMarkArrival,
 }) => {
   return (
-    <div className="bg-card rounded-2xl p-4 card-shadow border border-medical/20">
+    <div dir="rtl" className="bg-card rounded-2xl p-4 card-shadow border border-medical/20">
       <div className="flex items-start gap-3">
+        {/* Right zone: appointment details */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-base text-card-foreground mb-1 text-start">
+          <h3 className="font-semibold text-base text-card-foreground mb-1">
             {appointment.type}
           </h3>
+
+          <div className="text-sm text-muted-foreground mb-1">
+            <span className="font-medium text-card-foreground">{appointment.doctor}</span>
+          </div>
 
           <div className="flex items-center gap-1.5 text-muted-foreground text-sm mb-1">
             <Clock className="w-3.5 h-3.5" />
             <span>{appointment.time}</span>
-          </div>
-
-          <div className="text-sm text-muted-foreground mb-1">
-            <span className="font-medium text-card-foreground">{appointment.doctor}</span>
           </div>
 
           {appointment.location && (
@@ -46,6 +47,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
           )}
         </div>
 
+        {/* Left zone: icon + arrival button */}
         <div className="flex flex-col items-center gap-2 shrink-0">
           <div className="w-10 h-10 rounded-xl medical-gradient flex items-center justify-center">
             <Stethoscope className="w-5 h-5 text-primary-foreground" />
