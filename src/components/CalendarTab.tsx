@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getDay, addMonths, subMonths, addWeeks, subWeeks, startOfDay } from 'date-fns';
-import { ChevronRight, ChevronLeft, Search, Filter, Clock, MapPin, CalendarDays } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { ChevronRight, ChevronLeft, Filter, Clock, MapPin, CalendarDays } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Appointment } from '@/types';
