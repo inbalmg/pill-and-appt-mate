@@ -282,6 +282,9 @@ Deno.serve(async (req) => {
     // Check appointments
     if (appointments) {
       for (const appt of appointments) {
+        // Skip appointments without a reminder setting
+        if (!appt.reminderMinutes && appt.reminderMinutes !== 0) continue;
+        if (appt.reminderMinutes <= 0) continue;
         if (appt.date !== todayStr) continue;
 
         const [h, m] = appt.time.split(':').map(Number);
