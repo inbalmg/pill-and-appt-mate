@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isSameDay, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, RotateCcw, Bell, BellOff, BookOpen, Download, Send } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, RotateCcw, Bell, BellOff, BookOpen, Download } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
@@ -36,7 +36,7 @@ const Index = () => {
   const [completions, setCompletions] = useLocalStorage<CompletionRecord>('completions', {});
   const [arrivals, setArrivals] = useLocalStorage<ArrivalRecord>('arrivals', {});
 
-  const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker, debouncedSync, sendTestNotification } = useNotifications();
+  const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker, debouncedSync } = useNotifications();
   const { canInstall, install } = useInstallPrompt();
 
   // Start notification checker when subscribed
@@ -249,15 +249,6 @@ const Index = () => {
             >
               {isSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
             </button>
-            {isSubscribed && (
-              <button
-                onClick={sendTestNotification}
-                className="p-1.5 rounded-lg transition-colors hover:bg-muted text-muted-foreground"
-                title="שלח התראת בדיקה"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            )}
           </span>
         </h1>
 
