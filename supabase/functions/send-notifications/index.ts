@@ -340,14 +340,17 @@ Deno.serve(async (req) => {
 
       for (const sub of subscriptions) {
         try {
+          console.log(`Sending push to endpoint: ${sub.endpoint.substring(0, 60)}...`);
+          console.log(`Payload: ${payload.substring(0, 100)}`);
           await sendWebPush(
             { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
             payload,
             { publicKey: vapidData.public_key, privateKey: vapidData.private_key }
           );
+          console.log(`✅ Push sent successfully!`);
           sentCount++;
         } catch (error) {
-          console.error(`Failed to send to ${sub.endpoint}:`, error.message);
+          console.error(`❌ Failed to send push:`, error.message);
           if (error.message.includes('410') || error.message.includes('404')) {
             failedEndpoints.push(sub.endpoint);
           }
