@@ -344,18 +344,18 @@ const Index = () => {
         {showAddMenu && (
           <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-4 duration-200">
             <button
-              onClick={() => { setShowAddMenu(false); setEditingMed(null); setShowMedForm(true); }}
-              className="flex items-center gap-2 bg-card px-5 py-3 rounded-2xl card-shadow border border-border whitespace-nowrap hover:bg-secondary transition-colors"
-            >
-              <Pill className="w-5 h-5 text-primary" />
-              <span className="font-medium text-sm">הוספת תרופה</span>
-            </button>
-            <button
               onClick={() => { setShowAddMenu(false); setEditingAppt(null); setShowApptForm(true); }}
               className="flex items-center gap-2 bg-card px-5 py-3 rounded-2xl card-shadow border border-border whitespace-nowrap hover:bg-secondary transition-colors"
             >
               <Stethoscope className="w-5 h-5 text-medical" />
               <span className="font-medium text-sm">הוספת תור</span>
+            </button>
+            <button
+              onClick={() => { setShowAddMenu(false); setEditingMed(null); setShowMedForm(true); }}
+              className="flex items-center gap-2 bg-card px-5 py-3 rounded-2xl card-shadow border border-border whitespace-nowrap hover:bg-secondary transition-colors"
+            >
+              <Pill className="w-5 h-5 text-primary" />
+              <span className="font-medium text-sm">הוספת תרופה</span>
             </button>
           </div>
         )}
