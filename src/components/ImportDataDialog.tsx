@@ -1,0 +1,332 @@
+import React, { useState, useRef } from 'react';
+import { Upload, FileText, X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import type { Medication, Appointment } from '@/types';
+import { v4Fallback } from '@/lib/uuid';
+
+interface ImportDataDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onImportMedications: (meds: Medication[]) => Promise<void>;
+  onImportAppointments: (appts: Appointment[]) => Promise<void>;
+}
+
+type ImportType = 'medications' | 'appointments' | null;
+
+interface ValidationResult {
+  valid: boolean;
+  data: any[];
+  errors: string[];
+  type: ImportType;
+}
+
+const MEDICATION_REQUIRED_FIELDS = ['name'];
+const APPOINTMENT_REQUIRED_FIELDS = ['type', 'date', 'time'];
+
+function generateId(): string {
+  return v4Fallback();
+}
+
+function detectType(headers: string[]): ImportType {
+  const lower = headers.map(h => h.toLowerCase().trim());
+  if (lower.includes('type') && lower.includes('date') && lower.includes('time') && (lower.includes('doctor') || lower.includes('location'))) {
+    return 'appointments';
+  }
+  if (lower.includes('name') && (lower.includes('times') || lower.includes('frequency') || lower.includes('dosage'))) {
+    return 'medications';
+  }
+  return null;
+}
+
+function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) return { headers: [], rows: [] };
+
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const rows = lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+    const obj: Record<string, string> = {};
+    headers.forEach((h, i) => { obj[h] = values[i] || ''; });
+    return obj;
+  });
+
+  return { headers, rows };
+}
+
+function validateMedication(row: any, index: number): { med: Medication | null; errors: string[] } {
+  const errors: string[] = [];
+  if (!row.name || !row.name.trim()) {
+    errors.push(`שורה ${index + 1}: שם תרופה חסר`);
+    return { med: null, errors };
+  }
+
+  const frequency = row.frequency || 'daily';
+  if (!['daily', 'weekly', 'once', 'every_x_days'].includes(frequency)) {
+    errors.push(`שורה ${index + 1}: תדירות לא חוקית "${frequency}"`);
+    return { med: null, errors };
+  }
+
+  let times: string[] = [];
+  if (row.times) {
+    times = row.times.split(';').map((t: string) => t.trim()).filter(Boolean);
+    for (const t of times) {
+      if (!/^\d{2}:\d{2}$/.test(t)) {
+        errors.push(`שורה ${index + 1}: פורמט שעה לא חוקי "${t}" (נדרש HH:MM)`);
+        return { med: null, errors };
+      }
+    }
+  }
+  if (times.length === 0) times = ['08:00'];
+
+  const startDate = row.startDate || row.start_date || new Date().toISOString().split('T')[0];
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    errors.push(`שורה ${index + 1}: פורמט תאריך התחלה לא חוקי`);
+    return { med: null, errors };
+  }
+
+  const med: Medication = {
+    id: generateId(),
+    name: row.name.trim(),
+    dosage: row.dosage?.trim() || undefined,
+    times,
+    frequency: frequency as Medication['frequency'],
+    weekDay: row.weekDay !== undefined ? Number(row.weekDay) : (row.week_day !== undefined ? Number(row.week_day) : undefined),
+    intervalDays: row.intervalDays !== undefined ? Number(row.intervalDays) : (row.interval_days !== undefined ? Number(row.interval_days) : undefined),
+    startDate,
+    endDate: row.endDate || row.end_date || undefined,
+    notes: row.notes || '',
+    reminderMinutes: Number(row.reminderMinutes || row.reminder_minutes || 15),
+    instruction: row.instruction || undefined,
+  };
+
+  return { med, errors: [] };
+}
+
+function validateAppointment(row: any, index: number): { appt: Appointment | null; errors: string[] } {
+  const errors: string[] = [];
+
+  if (!row.type?.trim()) {
+    errors.push(`שורה ${index + 1}: סוג תור חסר`);
+    return { appt: null, errors };
+  }
+  if (!row.date || !/^\d{4}-\d{2}-\d{2}$/.test(row.date)) {
+    errors.push(`שורה ${index + 1}: תאריך חסר או לא חוקי (נדרש YYYY-MM-DD)`);
+    return { appt: null, errors };
+  }
+  if (!row.time || !/^\d{2}:\d{2}$/.test(row.time)) {
+    errors.push(`שורה ${index + 1}: שעה חסרה או לא חוקית (נדרש HH:MM)`);
+    return { appt: null, errors };
+  }
+
+  const appt: Appointment = {
+    id: generateId(),
+    type: row.type.trim(),
+    date: row.date,
+    time: row.time,
+    doctor: row.doctor || '',
+    location: row.location || '',
+    notes: row.notes || '',
+    reminderMinutes: Number(row.reminderMinutes || row.reminder_minutes || 30),
+  };
+
+  return { appt, errors: [] };
+}
+
+function validateData(data: any[], type: ImportType): ValidationResult {
+  if (!type) return { valid: false, data: [], errors: ['לא ניתן לזהות את סוג הנתונים'], type: null };
+
+  const allErrors: string[] = [];
+  const validItems: any[] = [];
+
+  for (let i = 0; i < data.length; i++) {
+    if (type === 'medications') {
+      const { med, errors } = validateMedication(data[i], i);
+      if (med) validItems.push(med);
+      allErrors.push(...errors);
+    } else {
+      const { appt, errors } = validateAppointment(data[i], i);
+      if (appt) validItems.push(appt);
+      allErrors.push(...errors);
+    }
+  }
+
+  return {
+    valid: validItems.length > 0,
+    data: validItems,
+    errors: allErrors,
+    type,
+  };
+}
+
+export default function ImportDataDialog({ open, onClose, onImportMedications, onImportAppointments }: ImportDataDialogProps) {
+  const [validation, setValidation] = useState<ValidationResult | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [fileName, setFileName] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  if (!open) return null;
+
+  const reset = () => {
+    setValidation(null);
+    setFileName('');
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileName(file.name);
+    const text = await file.text();
+
+    try {
+      let rows: any[];
+      let detectedType: ImportType = null;
+
+      if (file.name.endsWith('.json')) {
+        const parsed = JSON.parse(text);
+        rows = Array.isArray(parsed) ? parsed : parsed.medications || parsed.appointments || [];
+        if (parsed.medications) detectedType = 'medications';
+        else if (parsed.appointments) detectedType = 'appointments';
+        else if (rows.length > 0) {
+          const keys = Object.keys(rows[0]);
+          detectedType = detectType(keys);
+        }
+      } else {
+        // CSV
+        const { headers, rows: csvRows } = parseCSV(text);
+        rows = csvRows;
+        detectedType = detectType(headers);
+      }
+
+      if (rows.length === 0) {
+        setValidation({ valid: false, data: [], errors: ['הקובץ ריק או לא מכיל נתונים'], type: null });
+        return;
+      }
+
+      const result = validateData(rows, detectedType);
+      setValidation(result);
+    } catch {
+      setValidation({ valid: false, data: [], errors: ['שגיאה בקריאת הקובץ. ודא שהפורמט תקין (CSV או JSON).'], type: null });
+    }
+  };
+
+  const handleImport = async () => {
+    if (!validation?.valid || !validation.type) return;
+    setImporting(true);
+    try {
+      if (validation.type === 'medications') {
+        await onImportMedications(validation.data);
+      } else {
+        await onImportAppointments(validation.data);
+      }
+      toast.success(`יובאו ${validation.data.length} ${validation.type === 'medications' ? 'תרופות' : 'תורים'} בהצלחה`);
+      reset();
+      onClose();
+    } catch {
+      toast.error('שגיאה בייבוא הנתונים');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="fixed inset-0 bg-black/50" onClick={() => { reset(); onClose(); }} />
+      <div className="relative bg-card rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-5 animate-in slide-in-from-bottom duration-200" dir="rtl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-foreground">ייבוא נתונים</h2>
+          <button onClick={() => { reset(); onClose(); }} className="p-1 rounded-lg hover:bg-muted">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* File input */}
+        <div
+          onClick={() => fileRef.current?.click()}
+          className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+        >
+          <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">לחץ לבחירת קובץ CSV או JSON</p>
+          {fileName && (
+            <p className="text-sm text-primary mt-2 flex items-center justify-center gap-1">
+              <FileText className="w-4 h-4" />
+              {fileName}
+            </p>
+          )}
+        </div>
+        <input ref={fileRef} type="file" accept=".csv,.json" className="hidden" onChange={handleFile} />
+
+        {/* Validation results */}
+        {validation && (
+          <div className="mt-4 space-y-3">
+            {validation.valid && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 flex items-start gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                    נמצאו {validation.data.length} {validation.type === 'medications' ? 'תרופות' : 'תורים'} תקינים
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {validation.errors.length > 0 && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-destructive mb-1">שגיאות:</p>
+                  <ul className="text-xs text-destructive/80 space-y-0.5">
+                    {validation.errors.slice(0, 5).map((err, i) => (
+                      <li key={i}>• {err}</li>
+                    ))}
+                    {validation.errors.length > 5 && (
+                      <li>... ועוד {validation.errors.length - 5} שגיאות</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Preview */}
+            {validation.valid && validation.data.length > 0 && (
+              <div className="bg-muted/50 rounded-xl p-3">
+                <p className="text-xs text-muted-foreground mb-2">תצוגה מקדימה:</p>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {validation.data.slice(0, 5).map((item, i) => (
+                    <div key={i} className="text-xs bg-card rounded-lg p-2 border border-border">
+                      {validation.type === 'medications'
+                        ? `💊 ${item.name}${item.dosage ? ` - ${item.dosage}` : ''} (${item.times.join(', ')})`
+                        : `🏥 ${item.type} - ${item.date} ${item.time}`
+                      }
+                    </div>
+                  ))}
+                  {validation.data.length > 5 && (
+                    <p className="text-xs text-muted-foreground text-center">... ועוד {validation.data.length - 5}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {validation.valid && (
+              <Button onClick={handleImport} disabled={importing} className="w-full">
+                {importing ? 'מייבא...' : `ייבא ${validation.data.length} ${validation.type === 'medications' ? 'תרופות' : 'תורים'}`}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Format help */}
+        <div className="mt-4 bg-muted/30 rounded-xl p-3">
+          <p className="text-xs font-medium text-muted-foreground mb-2">פורמט נתמך:</p>
+          <div className="text-xs text-muted-foreground/80 space-y-1">
+            <p><strong>תרופות CSV:</strong> name, dosage, times (מופרד ב-;), frequency, startDate</p>
+            <p><strong>תורים CSV:</strong> type, date, time, doctor, location</p>
+            <p><strong>JSON:</strong> מערך אובייקטים או {"{"} medications/appointments: [...] {"}"}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
