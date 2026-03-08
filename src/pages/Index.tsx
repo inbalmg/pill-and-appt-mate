@@ -194,6 +194,39 @@ const Index = () => {
               {isSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
             </button>
             <button
+              onClick={() => setShowImport(true)}
+              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+              title="ייבוא מקובץ"
+            >
+              <Upload className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                const data = {
+                  medications: medications.map(m => ({
+                    name: m.name, dosage: m.dosage, times: m.times, frequency: m.frequency,
+                    weekDay: m.weekDay, intervalDays: m.intervalDays, startDate: m.startDate,
+                    endDate: m.endDate, notes: m.notes, reminderMinutes: m.reminderMinutes, instruction: m.instruction,
+                  })),
+                  appointments: appointments.map(a => ({
+                    type: a.type, date: a.date, time: a.time, doctor: a.doctor,
+                    location: a.location, notes: a.notes, reminderMinutes: a.reminderMinutes,
+                  })),
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = `pill-mate-backup-${format(new Date(), 'yyyy-MM-dd')}.json`;
+                anchor.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+              title="ייצוא נתונים"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
               onClick={signOut}
               className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
               title="התנתק"
