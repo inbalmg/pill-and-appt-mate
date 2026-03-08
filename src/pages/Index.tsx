@@ -249,7 +249,15 @@ const Index = () => {
             >
               {isSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
             </button>
-          </span>
+            {isSubscribed && (
+              <button
+                onClick={sendTestNotification}
+                className="p-1.5 rounded-lg transition-colors hover:bg-muted text-muted-foreground"
+                title="שלח התראת בדיקה"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            )}
         </h1>
 
         {canInstall && (
