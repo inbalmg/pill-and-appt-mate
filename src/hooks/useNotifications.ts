@@ -235,6 +235,34 @@ export function useNotifications() {
     }, SYNC_DEBOUNCE_MS);
   }, [isSubscribed, syncRemindersToDb]);
 
+  const sendTestNotification = useCallback(async () => {
+    if (!isSubscribed) {
+      alert('יש להפעיל התראות קודם (לחץ על אייקון הפעמון)');
+      return;
+    }
+    try {
+      const now = new Date();
+      const triggerAt = new Date(now.getTime() + 5000); // 5 seconds from now
+      const key = `test_${Date.now()}`;
+      const { error } = await supabase
+        .from('pending_reminders' as any)
+        .insert({
+          notification_key: key,
+          trigger_at: triggerAt.toISOString(),
+          title: '🔔 התראת בדיקה',
+          body: 'זוהי התראת בדיקה - אם אתה רואה את זה, ההתראות עובדות!',
+          tag: 'test',
+          type: 'med',
+          sent: false,
+        } as any);
+      if (error) throw error;
+      alert('התראת בדיקה נשלחה! תקבל אותה תוך דקה (כשה-cron ירוץ).');
+    } catch (error) {
+      console.error('Test notification error:', error);
+      alert('שגיאה בשליחת התראת בדיקה');
+    }
+  }, [isSubscribed]);
+
   return {
     permission,
     isSubscribed,
@@ -243,6 +271,7 @@ export function useNotifications() {
     unsubscribe,
     startNotificationChecker,
     debouncedSync,
+    sendTestNotification,
   };
 }
 
