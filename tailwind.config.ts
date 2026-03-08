@@ -62,6 +62,10 @@ export default {
           DEFAULT: "hsl(var(--medical))",
           foreground: "hsl(var(--medical-foreground))",
         },
+        purple: {
+          DEFAULT: "hsl(var(--purple))",
+          foreground: "hsl(var(--purple-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

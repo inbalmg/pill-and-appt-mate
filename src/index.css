@@ -39,6 +39,9 @@
     --medical: 210 65% 50%;
     --medical-foreground: 0 0% 100%;
 
+    --purple: 270 60% 55%;
+    --purple-foreground: 0 0% 100%;
+
     --border: 200 20% 88%;
     --input: 200 20% 88%;
     --ring: 174 62% 40%;
@@ -72,6 +75,8 @@
     --muted-foreground: 200 10% 55%;
     --accent: 174 30% 20%;
     --accent-foreground: 174 62% 70%;
+    --purple: 270 60% 65%;
+    --purple-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     --border: 210 20% 20%;
