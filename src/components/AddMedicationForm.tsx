@@ -25,7 +25,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
   const [notes, setNotes] = useState(editingMedication?.notes || '');
   const [instruction, setInstruction] = useState(editingMedication?.instruction || '');
   const [reminderMinutes, setReminderMinutes] = useState<number | ''>(
-    editingMedication?.reminderMinutes ? editingMedication.reminderMinutes : ''
+    editingMedication?.reminderMinutes && editingMedication.reminderMinutes > 0 ? editingMedication.reminderMinutes : ''
   );
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -231,7 +231,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
             <Input
               type="text"
               inputMode="numeric"
-              value={reminderMinutes === 0 ? '' : reminderMinutes}
+              value={reminderMinutes === '' || reminderMinutes === 0 ? '' : reminderMinutes}
               onChange={(e) => {
                 const val = e.target.value.replace(/\D/g, '');
                 setReminderMinutes(val === '' ? '' : Number(val));
