@@ -312,28 +312,14 @@ const Index = () => {
             ) : (
               <div className="space-y-2">
                 {dailyAppointments.map((appt) => (
-                  <div key={appt.id} className="relative group">
-                    <AppointmentCard
-                      appointment={appt}
-                      canMarkArrival={canMarkArrival(appt)}
-                      arrived={!!arrivals[dateKey]?.[appt.id]}
-                      onMarkArrival={() => toggleArrival(appt.id)}
-                    />
-                    <div className="absolute top-3 start-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => { setEditingAppt(appt); setShowApptForm(true); }}
-                        className="p-1.5 rounded-lg bg-muted hover:bg-secondary transition-colors"
-                      >
-                        <Edit className="w-3.5 h-3.5 text-muted-foreground" />
-                      </button>
-                      <button
-                        onClick={() => deleteAppointment(appt.id)}
-                        className="p-1.5 rounded-lg bg-muted hover:bg-destructive/10 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </button>
-                    </div>
-                  </div>
+                  <AppointmentCard
+                    key={appt.id}
+                    appointment={appt}
+                    canMarkArrival={canMarkArrival(appt)}
+                    arrived={!!arrivals[dateKey]?.[appt.id]}
+                    onMarkArrival={() => toggleArrival(appt.id)}
+                    onCardClick={() => setActionTarget({ type: 'appt', appt })}
+                  />
                 ))}
               </div>
             )}
