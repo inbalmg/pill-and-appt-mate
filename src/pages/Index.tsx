@@ -251,15 +251,15 @@ const Index = () => {
 
         <Tabs defaultValue="journal" dir="rtl" className="w-full">
           <TabsList className="w-full grid grid-cols-3 mb-3">
-            <TabsTrigger value="journal" className="flex items-center gap-1.5">
+            <TabsTrigger value="journal" className="flex items-center gap-1.5 data-[state=active]:text-medical data-[state=active]:shadow-sm">
               <BookOpen className="w-4 h-4" />
               יומן
             </TabsTrigger>
-            <TabsTrigger value="medications" className="flex items-center gap-1.5">
+            <TabsTrigger value="medications" className="flex items-center gap-1.5 data-[state=active]:text-success data-[state=active]:shadow-sm">
               <Pill className="w-4 h-4" />
               תרופות
             </TabsTrigger>
-            <TabsTrigger value="appointments" className="flex items-center gap-1.5">
+            <TabsTrigger value="appointments" className="flex items-center gap-1.5 data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400 data-[state=active]:shadow-sm">
               <Stethoscope className="w-4 h-4" />
               {dailyAppointments.length > 0 ? `תורים (${dailyAppointments.length})` : 'תורים'}
             </TabsTrigger>
