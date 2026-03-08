@@ -58,7 +58,7 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className }) =
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`flex items-center justify-between w-full h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors hover:bg-accent/50 ${className || ''}`}
+        className={`flex items-center justify-between w-full h-10 rounded-md border border-input bg-background px-3 text-base md:text-sm ring-offset-background transition-colors hover:bg-accent/50 ${className || ''}`}
       >
         <span className="font-medium text-foreground">{display}</span>
         <Clock className="w-4 h-4 text-muted-foreground" />
