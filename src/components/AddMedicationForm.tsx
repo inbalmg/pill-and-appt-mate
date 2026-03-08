@@ -138,6 +138,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
               {[
                 { val: 'daily' as const, label: 'יומי' },
                 { val: 'weekly' as const, label: 'שבועי' },
+                { val: 'every_x_days' as const, label: 'כל X ימים' },
                 { val: 'once' as const, label: 'חד פעמי' },
               ].map(({ val, label }) => (
                 <button
