@@ -160,6 +160,23 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
             </div>
           </div>
 
+          {frequency === 'every_x_days' && (
+            <div>
+              <Label>כל כמה ימים?</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">כל</span>
+                <Input
+                  type="number"
+                  value={intervalDays}
+                  onChange={(e) => setIntervalDays(Math.max(2, Number(e.target.value)))}
+                  min={2}
+                  className="w-20 text-center"
+                />
+                <span className="text-sm text-muted-foreground">ימים</span>
+              </div>
+            </div>
+          )}
+
           {frequency === 'weekly' && (
             <div>
               <Label>יום בשבוע</Label>
