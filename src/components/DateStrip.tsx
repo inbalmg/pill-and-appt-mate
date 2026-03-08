@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useEffect, useCallback } from 'react';
-import { format, addDays, isSameDay, isToday, startOfDay } from 'date-fns';
+import React, { useMemo, useRef, useEffect, useCallback, useState } from 'react';
+import { format, addDays, isSameDay, isToday, differenceInDays } from 'date-fns';
 import { he } from 'date-fns/locale';
 
 interface DateStripProps {
@@ -13,9 +13,9 @@ interface DateStripProps {
 
 const DAY_NAMES_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 
-// Total days to render (centered around rangeStart)
-const TOTAL_DAYS = 35;
-const BUFFER_BEFORE = 14;
+const DAYS_BEFORE = 30;
+const DAYS_AFTER = 30;
+const TOTAL_DAYS = DAYS_BEFORE + 1 + DAYS_AFTER; // 61 days centered on anchor
 
 const DayButton = React.memo(({
   day,
@@ -57,55 +57,81 @@ DayButton.displayName = 'DayButton';
 
 const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onSelectDate, rangeStart, onShiftRange, onGoToToday, showTodayButton }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const isInitialScroll = useRef(true);
+  // Anchor date determines the center of the generated days array.
+  // Only changes when selectedDate goes outside the current range.
+  const [anchor, setAnchor] = useState(() => selectedDate);
+  const prevSelectedRef = useRef(selectedDate);
 
   const days = useMemo(() => {
-    const start = addDays(rangeStart, -BUFFER_BEFORE);
+    const start = addDays(anchor, -DAYS_BEFORE);
     return Array.from({ length: TOTAL_DAYS }, (_, i) => addDays(start, i));
-  }, [rangeStart]);
+  }, [anchor]);
 
-  // Scroll to selected date
-  const scrollToSelected = useCallback((smooth: boolean) => {
+  // Check if selectedDate is within the current days range; if not, re-anchor
+  useEffect(() => {
+    const diff = differenceInDays(selectedDate, anchor);
+    if (Math.abs(diff) > DAYS_BEFORE - 5) {
+      setAnchor(selectedDate);
+    }
+  }, [selectedDate, anchor]);
+
+  // Scroll to the selected date element
+  const scrollToDate = useCallback((date: Date, smooth: boolean) => {
     if (!scrollRef.current) return;
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const dateStr = format(date, 'yyyy-MM-dd');
     const el = scrollRef.current.querySelector(`[data-date="${dateStr}"]`) as HTMLElement | null;
-    if (el) {
-      el.scrollIntoView({
-        behavior: smooth ? 'smooth' : 'auto',
-        block: 'nearest',
-        inline: 'center',
+    if (!el) return;
+
+    const container = scrollRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+
+    // Calculate offset to center the element in the container
+    // In RTL, we need to account for direction
+    const elCenter = elRect.left + elRect.width / 2;
+    const containerCenter = containerRect.left + containerRect.width / 2;
+    const scrollOffset = container.scrollLeft + (elCenter - containerCenter);
+
+    container.scrollTo({
+      left: scrollOffset,
+      behavior: smooth ? 'smooth' : 'auto',
+    });
+  }, []);
+
+  // On mount: instant scroll to selected date
+  const hasInitialized = useRef(false);
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      // Wait for DOM render
+      requestAnimationFrame(() => {
+        scrollToDate(selectedDate, false);
+        hasInitialized.current = true;
       });
     }
-  }, [selectedDate]);
+  }, [days]); // re-run when days change (anchor changed)
 
-  // Initial scroll (no animation) and smooth scroll on subsequent changes
+  // On selectedDate change: smooth scroll
   useEffect(() => {
-    // Small delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      if (isInitialScroll.current) {
-        scrollToSelected(false);
-        isInitialScroll.current = false;
-      } else {
-        scrollToSelected(true);
-      }
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [scrollToSelected]);
+    if (!hasInitialized.current) return;
+    const prev = prevSelectedRef.current;
+    prevSelectedRef.current = selectedDate;
 
-  // Extend range when scrolling near edges
-  const handleScroll = useCallback(() => {
-    if (!scrollRef.current) return;
-    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-    // RTL: scrollLeft is negative in RTL
-    const scrollRight = Math.abs(scrollLeft);
-    const maxScroll = scrollWidth - clientWidth;
+    if (isSameDay(prev, selectedDate)) return;
 
-    if (scrollRight > maxScroll - 50) {
-      onShiftRange('backward');
-    } else if (scrollRight < 50) {
-      onShiftRange('forward');
-    }
-  }, [onShiftRange]);
+    // If anchor just changed, wait for DOM to update, then instant-position, then smooth won't be needed
+    // since days array includes the new date
+    requestAnimationFrame(() => {
+      scrollToDate(selectedDate, true);
+    });
+  }, [selectedDate, scrollToDate]);
+
+  // When anchor changes (days array rebuilt), instantly scroll to selected without animation
+  const prevAnchorRef = useRef(anchor);
+  useEffect(() => {
+    if (isSameDay(prevAnchorRef.current, anchor)) return;
+    prevAnchorRef.current = anchor;
+    hasInitialized.current = false; // trigger re-init
+  }, [anchor]);
 
   return (
     <div className="medical-gradient rounded-b-2xl px-3 pt-4 pb-5 card-shadow">
@@ -128,8 +154,7 @@ const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onSelectDate, range
       <div
         ref={scrollRef}
         dir="rtl"
-        onScroll={handleScroll}
-        className="flex gap-1.5 overflow-x-auto scrollbar-hide scroll-smooth"
+        className="flex gap-1.5 overflow-x-auto scrollbar-hide"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {days.map((day) => (
