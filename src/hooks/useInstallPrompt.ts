@@ -6,17 +6,18 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 function isIos(): boolean {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
 function isInStandaloneMode(): boolean {
   return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    (navigator as any).standalone === true
+    typeof window !== 'undefined' &&
+    (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true)
   );
 }
 
 function isIosSafari(): boolean {
+  if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent;
   return isIos() && /safari/i.test(ua) && !/crios|fxios|opios|edgios/i.test(ua);
 }
@@ -32,8 +33,7 @@ export function useInstallPrompt() {
       return;
     }
 
-    // On iOS Safari, show manual instructions
-    if (isIos() && !isInStandaloneMode()) {
+    if (isIos()) {
       const dismissed = sessionStorage.getItem('ios-install-dismissed');
       if (!dismissed) {
         setShowIosPrompt(true);
