@@ -24,7 +24,9 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
   const [endDate, setEndDate] = useState(editingMedication?.endDate || '');
   const [notes, setNotes] = useState(editingMedication?.notes || '');
   const [instruction, setInstruction] = useState(editingMedication?.instruction || '');
-  const [reminderMinutes, setReminderMinutes] = useState(editingMedication?.reminderMinutes ?? 15);
+  const [reminderMinutes, setReminderMinutes] = useState<number | ''>(
+    editingMedication?.reminderMinutes ? editingMedication.reminderMinutes : ''
+  );
   const [errors, setErrors] = useState<string[]>([]);
 
   const addTime = () => setTimes([...times, '12:00']);
@@ -71,7 +73,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
       endDate: endDate || undefined,
       notes: notes.trim(),
       instruction: instruction.trim(),
-      reminderMinutes,
+      reminderMinutes: reminderMinutes === '' ? 0 : reminderMinutes,
     });
   };
 
@@ -226,7 +228,17 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
 
           <div>
             <Label>תזכורת (דקות לפני)</Label>
-            <Input type="number" value={reminderMinutes} onChange={(e) => setReminderMinutes(Number(e.target.value))} min={0} className="mt-1" />
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={reminderMinutes === 0 ? '' : reminderMinutes}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '');
+                setReminderMinutes(val === '' ? '' : Number(val));
+              }}
+              placeholder="ללא תזכורת"
+              className="mt-1"
+            />
           </div>
 
           <div>

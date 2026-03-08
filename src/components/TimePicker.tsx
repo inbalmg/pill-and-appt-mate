@@ -15,11 +15,17 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className }) =
 
   const [tempHour, setTempHour] = useState(hour);
   const [tempMinute, setTempMinute] = useState(minute);
+  const [editingHour, setEditingHour] = useState(false);
+  const [editingMinute, setEditingMinute] = useState(false);
+  const [hourInput, setHourInput] = useState('');
+  const [minuteInput, setMinuteInput] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setTempHour(hour);
       setTempMinute(minute);
+      setEditingHour(false);
+      setEditingMinute(false);
     }
   }, [isOpen]);
 
@@ -27,6 +33,18 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className }) =
   const decHour = () => setTempHour((prev) => (prev - 1 + 24) % 24);
   const incMinute = () => setTempMinute((prev) => (prev + 5) % 60);
   const decMinute = () => setTempMinute((prev) => (prev - 5 + 60) % 60);
+
+  const handleHourInputBlur = () => {
+    const val = parseInt(hourInput, 10);
+    if (!isNaN(val) && val >= 0 && val <= 23) setTempHour(val);
+    setEditingHour(false);
+  };
+
+  const handleMinuteInputBlur = () => {
+    const val = parseInt(minuteInput, 10);
+    if (!isNaN(val) && val >= 0 && val <= 59) setTempMinute(val);
+    setEditingMinute(false);
+  };
 
   const handleConfirm = () => {
     onChange(`${String(tempHour).padStart(2, '0')}:${String(tempMinute).padStart(2, '0')}`);
@@ -64,10 +82,27 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className }) =
                 >
                   <ChevronUp className="w-6 h-6 text-muted-foreground" />
                 </button>
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
-                  <span className="text-3xl font-bold text-primary tabular-nums">
-                    {String(tempHour).padStart(2, '0')}
-                  </span>
+                <div
+                  className="w-16 h-16 rounded-2xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center cursor-text"
+                  onClick={() => { setEditingHour(true); setHourInput(String(tempHour).padStart(2, '0')); }}
+                >
+                  {editingHour ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={2}
+                      value={hourInput}
+                      onChange={(e) => setHourInput(e.target.value.replace(/\D/g, ''))}
+                      onBlur={handleHourInputBlur}
+                      onKeyDown={(e) => e.key === 'Enter' && handleHourInputBlur()}
+                      className="w-full h-full text-center text-3xl font-bold text-primary tabular-nums bg-transparent outline-none"
+                    />
+                  ) : (
+                    <span className="text-3xl font-bold text-primary tabular-nums">
+                      {String(tempHour).padStart(2, '0')}
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -90,10 +125,27 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className }) =
                 >
                   <ChevronUp className="w-6 h-6 text-muted-foreground" />
                 </button>
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
-                  <span className="text-3xl font-bold text-primary tabular-nums">
-                    {String(tempMinute).padStart(2, '0')}
-                  </span>
+                <div
+                  className="w-16 h-16 rounded-2xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center cursor-text"
+                  onClick={() => { setEditingMinute(true); setMinuteInput(String(tempMinute).padStart(2, '0')); }}
+                >
+                  {editingMinute ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={2}
+                      value={minuteInput}
+                      onChange={(e) => setMinuteInput(e.target.value.replace(/\D/g, ''))}
+                      onBlur={handleMinuteInputBlur}
+                      onKeyDown={(e) => e.key === 'Enter' && handleMinuteInputBlur()}
+                      className="w-full h-full text-center text-3xl font-bold text-primary tabular-nums bg-transparent outline-none"
+                    />
+                  ) : (
+                    <span className="text-3xl font-bold text-primary tabular-nums">
+                      {String(tempMinute).padStart(2, '0')}
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
