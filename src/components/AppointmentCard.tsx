@@ -7,6 +7,7 @@ interface AppointmentCardProps {
   canMarkArrival: boolean;
   arrived: boolean;
   onMarkArrival: () => void;
+  onCardClick?: () => void;
 }
 
 const AppointmentCard: React.FC<AppointmentCardProps> = ({
