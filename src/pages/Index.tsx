@@ -36,7 +36,7 @@ const Index = () => {
   const [completions, setCompletions] = useLocalStorage<CompletionRecord>('completions', {});
   const [arrivals, setArrivals] = useLocalStorage<ArrivalRecord>('arrivals', {});
 
-  const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker } = useNotifications();
+  const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker, debouncedSync } = useNotifications();
   const { canInstall, install } = useInstallPrompt();
 
   // Start notification checker when subscribed
@@ -49,6 +49,13 @@ const Index = () => {
       return cleanup;
     }
   }, [isSubscribed, medications, appointments, startNotificationChecker]);
+
+  // Sync reminders to DB whenever data changes (for cron-based delivery when app is closed)
+  useEffect(() => {
+    if (isSubscribed) {
+      debouncedSync(medications, appointments);
+    }
+  }, [isSubscribed, medications, appointments, debouncedSync]);
 
   // Seed data once on first load
   useEffect(() => {
