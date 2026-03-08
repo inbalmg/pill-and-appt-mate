@@ -221,4 +221,4 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate, o
   );
 };
 
-export default CalendarTab;
+export default React.memo(CalendarTab);
