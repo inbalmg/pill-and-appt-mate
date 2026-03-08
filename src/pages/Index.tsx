@@ -15,7 +15,7 @@ import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/hooks/useAuth';
 import type { Medication, Appointment, MedicationInstance } from '@/types';
 import InstallBanner from '@/components/InstallBanner';
-import { useInstallPrompt } from '@/hooks/useInstallPrompt';
+
 
 const Index = () => {
   const { signOut } = useAuth();
