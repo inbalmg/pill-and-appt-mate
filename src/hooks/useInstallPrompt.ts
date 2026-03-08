@@ -5,14 +5,39 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+function isIos(): boolean {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function isInStandaloneMode(): boolean {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as any).standalone === true
+  );
+}
+
+function isIosSafari(): boolean {
+  const ua = navigator.userAgent;
+  return isIos() && /safari/i.test(ua) && !/crios|fxios|opios|edgios/i.test(ua);
+}
+
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showIosPrompt, setShowIosPrompt] = useState(false);
 
   useEffect(() => {
-    // Check if already in standalone mode
-    if (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone) {
+    if (isInStandaloneMode()) {
       setIsInstalled(true);
+      return;
+    }
+
+    // On iOS Safari, show manual instructions
+    if (isIos() && !isInStandaloneMode()) {
+      const dismissed = sessionStorage.getItem('ios-install-dismissed');
+      if (!dismissed) {
+        setShowIosPrompt(true);
+      }
       return;
     }
 
@@ -47,9 +72,18 @@ export function useInstallPrompt() {
     return false;
   }, [deferredPrompt]);
 
+  const dismissIos = useCallback(() => {
+    setShowIosPrompt(false);
+    sessionStorage.setItem('ios-install-dismissed', '1');
+  }, []);
+
   return {
-    canInstall: !!deferredPrompt && !isInstalled,
+    canInstall: (!!deferredPrompt || showIosPrompt) && !isInstalled,
     isInstalled,
+    isIos: isIos(),
+    isIosSafari: isIosSafari(),
+    showIosPrompt,
     install,
+    dismissIos,
   };
 }
