@@ -258,6 +258,7 @@ const Index = () => {
                 <Send className="w-4 h-4" />
               </button>
             )}
+          </span>
         </h1>
 
         {canInstall && (
