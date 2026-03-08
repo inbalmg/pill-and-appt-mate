@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isSameDay, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, RotateCcw, Bell, BellOff, BookOpen, Download } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, RotateCcw, Bell, BellOff, BookOpen, Download, Send } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
