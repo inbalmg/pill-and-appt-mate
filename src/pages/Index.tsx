@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, Bell, BellOff, BookOpen, LogOut } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, Bell, BellOff, BookOpen, LogOut, Upload } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
@@ -9,6 +9,7 @@ import AddAppointmentForm from '@/components/AddAppointmentForm';
 import CalendarTab from '@/components/CalendarTab';
 import ActionSheet from '@/components/ActionSheet';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ImportDataDialog from '@/components/ImportDataDialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useSupabaseData } from '@/hooks/useSupabaseData';

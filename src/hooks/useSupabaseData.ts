@@ -222,6 +222,48 @@ export function useSupabaseData() {
     }));
   }, [user, arrivals]);
 
+  // Bulk import medications
+  const importMedications = useCallback(async (meds: Medication[]) => {
+    if (!user) return;
+    const payloads = meds.map(med => ({
+      id: med.id,
+      user_id: user.id,
+      name: med.name,
+      dosage: med.dosage || null,
+      times: med.times,
+      frequency: med.frequency,
+      week_day: med.weekDay ?? null,
+      interval_days: med.intervalDays ?? null,
+      start_date: med.startDate,
+      end_date: med.endDate || null,
+      notes: med.notes,
+      reminder_minutes: med.reminderMinutes,
+      instruction: med.instruction || null,
+    }));
+    const { error } = await supabase.from('medications').insert(payloads);
+    if (error) throw error;
+    setMedications(prev => [...prev, ...meds]);
+  }, [user]);
+
+  // Bulk import appointments
+  const importAppointments = useCallback(async (appts: Appointment[]) => {
+    if (!user) return;
+    const payloads = appts.map(appt => ({
+      id: appt.id,
+      user_id: user.id,
+      type: appt.type,
+      date: appt.date,
+      time: appt.time,
+      doctor: appt.doctor,
+      location: appt.location,
+      notes: appt.notes,
+      reminder_minutes: appt.reminderMinutes,
+    }));
+    const { error } = await supabase.from('appointments').insert(payloads);
+    if (error) throw error;
+    setAppointments(prev => [...prev, ...appts]);
+  }, [user]);
+
   return {
     medications,
     appointments,
@@ -234,5 +276,7 @@ export function useSupabaseData() {
     deleteAppointment,
     toggleCompletion,
     toggleArrival,
+    importMedications,
+    importAppointments,
   };
 }
