@@ -36,7 +36,7 @@ const Index = () => {
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'med' | 'appt'; id: string; name: string } | null>(null);
 
   const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker, debouncedSync } = useNotifications();
-  const { canInstall, install } = useInstallPrompt();
+  
 
   // Start notification checker when subscribed
   useEffect(() => {
