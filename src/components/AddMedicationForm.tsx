@@ -45,6 +45,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
     if (!startDate) errs.push('תאריך התחלה חובה');
     if (endDate && startDate && endDate < startDate) errs.push('תאריך סיום חייב להיות אחרי תאריך ההתחלה');
     if (frequency === 'once' && endDate && startDate !== endDate) errs.push('באירוע חד פעמי התאריכים חייבים להיות זהים');
+    if (frequency === 'every_x_days' && (!intervalDays || intervalDays < 2)) errs.push('מרווח ימים חייב להיות 2 לפחות');
 
     // Check duplicate times
     const uniqueTimes = new Set(times);
