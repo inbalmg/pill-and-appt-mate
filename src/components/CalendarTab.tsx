@@ -8,6 +8,7 @@ import type { Appointment } from '@/types';
 interface CalendarTabProps {
   appointments: Appointment[];
   onSelectDate: (date: Date) => void;
+  onAppointmentClick?: (appointment: Appointment) => void;
 }
 
 type ViewMode = 'monthly' | 'weekly';
