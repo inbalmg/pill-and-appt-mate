@@ -244,7 +244,7 @@ const Index = () => {
           </span>
         </h1>
 
-        <Tabs defaultValue="medications" className="w-full">
+        <Tabs defaultValue="medications" dir="rtl" className="w-full">
           <TabsList className="w-full grid grid-cols-2 mb-3">
             <TabsTrigger value="medications" className="flex items-center gap-1.5">
               <Pill className="w-4 h-4" />
