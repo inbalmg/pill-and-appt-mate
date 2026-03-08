@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getDay, addMonths, subMonths, addWeeks, subWeeks, startOfDay } from 'date-fns';
-import { ChevronRight, ChevronLeft, Search, Filter, Clock, MapPin, CalendarDays } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { ChevronRight, ChevronLeft, Filter, Clock, MapPin, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Appointment } from '@/types';
@@ -14,13 +13,12 @@ interface CalendarTabProps {
 type ViewMode = 'monthly' | 'weekly';
 
 const MONTH_NAMES_HE = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
-const DAY_NAMES_HE = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", 'ש'];
+const DAY_NAMES_HE = ["יום א'", "יום ב'", "יום ג'", "יום ד'", "יום ה'", "יום ו'", 'שבת'];
 
 const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
 
   // Get unique appointment types for filter
@@ -32,14 +30,10 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
   // Filter appointments
   const filteredAppointments = useMemo(() => {
     return appointments.filter(a => {
-      const matchesSearch = searchQuery === '' ||
-        a.type.includes(searchQuery) ||
-        a.doctor.includes(searchQuery) ||
-        a.location.includes(searchQuery);
       const matchesFilter = filterType === 'all' || a.type === filterType;
-      return matchesSearch && matchesFilter;
+      return matchesFilter;
     });
-  }, [appointments, searchQuery, filterType]);
+  }, [appointments, filterType]);
 
   // Get appointments for a specific date
   const getAppointmentsForDate = (date: Date) => {
@@ -91,17 +85,8 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
 
   return (
     <div dir="rtl" className="space-y-3">
-      {/* Search & Filter */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="חיפוש תור..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-9 text-sm"
-          />
-        </div>
+      {/* Filter Only */}
+      <div className="flex gap-2 justify-end">
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-[130px] text-sm">
             <Filter className="w-3.5 h-3.5 ml-1" />
@@ -157,8 +142,10 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
       <div className="bg-card rounded-2xl border border-border p-3 card-shadow">
         {/* Day headers */}
         <div className="grid grid-cols-7 mb-2">
-          {DAY_NAMES_HE.map(name => (
-            <div key={name} className="text-center text-xs font-medium text-muted-foreground py-1">
+          {DAY_NAMES_HE.map((name, i) => (
+            <div key={name} className={`text-center text-xs font-medium py-1 ${
+              i === 6 ? 'text-destructive' : i === 5 ? 'text-yellow-600 dark:text-yellow-500' : 'text-muted-foreground'
+            }`}>
               {name}
             </div>
           ))}
@@ -171,6 +158,9 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
             const isCurrentMonth = viewMode === 'monthly' ? isSameMonth(day, currentDate) : true;
             const isToday = isSameDay(day, new Date());
             const isSelected = selectedDay && isSameDay(day, selectedDay);
+            const dayOfWeek = getDay(day); // 0=Sun, 6=Sat
+            const isSaturday = dayOfWeek === 6;
+            const isFriday = dayOfWeek === 5;
 
             return (
               <button
@@ -179,10 +169,10 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
                 className={`relative p-1 rounded-xl text-center transition-all min-h-[44px] flex flex-col items-center justify-start gap-0.5
                   ${!isCurrentMonth ? 'opacity-30' : ''}
                   ${isToday ? 'ring-1 ring-primary' : ''}
-                  ${isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}
+                  ${isSelected ? 'bg-primary text-primary-foreground' : isSaturday ? 'bg-destructive/10 hover:bg-destructive/20' : isFriday ? 'bg-yellow-100 dark:bg-yellow-900/20 hover:bg-yellow-200 dark:hover:bg-yellow-900/30' : 'hover:bg-muted'}
                 `}
               >
-                <span className={`text-xs font-medium ${isSelected ? 'text-primary-foreground' : ''}`}>
+                <span className={`text-xs font-medium ${isSelected ? 'text-primary-foreground' : isSaturday ? 'text-destructive' : isFriday ? 'text-yellow-600 dark:text-yellow-500' : ''}`}>
                   {format(day, 'd')}
                 </span>
                 {dayAppts.length > 0 && (
