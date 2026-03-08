@@ -35,6 +35,7 @@ const Index = () => {
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
   const [actionTarget, setActionTarget] = useState<{ type: 'med' | 'appt'; med?: Medication; appt?: Appointment } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'med' | 'appt'; id: string; name: string } | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker, debouncedSync } = useNotifications();
   
