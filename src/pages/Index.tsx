@@ -251,6 +251,16 @@ const Index = () => {
           </span>
         </h1>
 
+        {canInstall && (
+          <button
+            onClick={install}
+            className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-2xl px-4 py-3 mb-3 font-bold text-sm shadow-md hover:opacity-90 transition-opacity"
+          >
+            <Download className="w-5 h-5" />
+            התקן אפליקציה למסך הבית
+          </button>
+        )}
+
         <Tabs defaultValue="journal" dir="rtl" className="w-full">
           <TabsList className="w-full grid grid-cols-3 mb-3">
             <TabsTrigger value="journal" className="flex items-center gap-1.5 data-[state=active]:text-medical data-[state=active]:shadow-sm">
