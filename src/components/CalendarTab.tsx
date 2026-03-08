@@ -19,21 +19,8 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const [filterType, setFilterType] = useState<string>('all');
-
-  // Get unique appointment types for filter
-  const appointmentTypes = useMemo(() => {
-    const types = new Set(appointments.map(a => a.type));
-    return Array.from(types);
-  }, [appointments]);
-
-  // Filter appointments
-  const filteredAppointments = useMemo(() => {
-    return appointments.filter(a => {
-      const matchesFilter = filterType === 'all' || a.type === filterType;
-      return matchesFilter;
-    });
-  }, [appointments, filterType]);
+  // Use all appointments directly
+  const filteredAppointments = appointments;
 
   // Get appointments for a specific date
   const getAppointmentsForDate = (date: Date) => {
