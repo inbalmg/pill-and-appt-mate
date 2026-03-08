@@ -144,7 +144,7 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
         <div className="grid grid-cols-7 mb-2">
           {DAY_NAMES_HE.map((name, i) => (
             <div key={name} className={`text-center text-xs font-medium py-1 ${
-              i === 6 ? 'text-destructive' : i === 5 ? 'text-yellow-600 dark:text-yellow-500' : 'text-muted-foreground'
+              i === 6 ? 'text-destructive' : 'text-muted-foreground'
             }`}>
               {name}
             </div>
