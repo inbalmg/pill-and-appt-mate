@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { format, addDays, isSameDay, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, RotateCcw, Bell, BellOff, BookOpen, Download } from 'lucide-react';
+import { format, addDays, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
+import { Plus, Pill, Stethoscope, CalendarDays, Bell, BellOff, BookOpen, Download, LogOut } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
@@ -10,17 +10,21 @@ import CalendarTab from '@/components/CalendarTab';
 import ActionSheet from '@/components/ActionSheet';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useNotifications } from '@/hooks/useNotifications';
-import { defaultMedications, defaultAppointments } from '@/data/seedData';
-import type { Medication, Appointment, CompletionRecord, ArrivalRecord, MedicationInstance } from '@/types';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useAuth } from '@/hooks/useAuth';
+import type { Medication, Appointment, MedicationInstance } from '@/types';
 import InstallBanner from '@/components/InstallBanner';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 
-const SEED_KEY = 'data_seeded';
-
 const Index = () => {
+  const { signOut } = useAuth();
+  const {
+    medications, appointments, completions, arrivals, loading,
+    saveMedication, saveAppointment, deleteMedication, deleteAppointment,
+    toggleCompletion, toggleArrival,
+  } = useSupabaseData();
+
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [rangeStart, setRangeStart] = useState(() => addDays(new Date(), -2));
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -30,11 +34,6 @@ const Index = () => {
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
   const [actionTarget, setActionTarget] = useState<{ type: 'med' | 'appt'; med?: Medication; appt?: Appointment } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'med' | 'appt'; id: string; name: string } | null>(null);
-
-  const [medications, setMedications] = useLocalStorage<Medication[]>('medications', []);
-  const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
-  const [completions, setCompletions] = useLocalStorage<CompletionRecord>('completions', {});
-  const [arrivals, setArrivals] = useLocalStorage<ArrivalRecord>('arrivals', {});
 
   const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker, debouncedSync } = useNotifications();
   const { canInstall, install } = useInstallPrompt();
@@ -50,30 +49,12 @@ const Index = () => {
     }
   }, [isSubscribed, medications, appointments, startNotificationChecker]);
 
-  // Sync reminders to DB whenever data changes (for cron-based delivery when app is closed)
+  // Sync reminders to DB whenever data changes
   useEffect(() => {
     if (isSubscribed) {
       debouncedSync(medications, appointments);
     }
   }, [isSubscribed, medications, appointments, debouncedSync]);
-
-  // Seed data once on first load
-  useEffect(() => {
-    if (!localStorage.getItem(SEED_KEY)) {
-      setMedications(defaultMedications);
-      setAppointments(defaultAppointments);
-      localStorage.setItem(SEED_KEY, 'true');
-    }
-  }, []);
-
-  const handleReset = () => {
-    if (window.confirm('האם לאפס את כל הנתונים למצב הראשוני?')) {
-      setMedications(defaultMedications);
-      setAppointments(defaultAppointments);
-      setCompletions({});
-      setArrivals({});
-    }
-  };
 
   // Reset to today when returning
   useEffect(() => {
@@ -134,61 +115,16 @@ const Index = () => {
       .sort((a, b) => a.time.localeCompare(b.time));
   }, [appointments, dateKey]);
 
-  const toggleCompletion = (medId: string, time: string) => {
-    const key = `${medId}_${time}`;
-    setCompletions(prev => ({
-      ...prev,
-      [dateKey]: {
-        ...prev[dateKey],
-        [key]: !prev[dateKey]?.[key],
-      },
-    }));
-  };
-
-  const toggleArrival = (apptId: string) => {
-    setArrivals(prev => ({
-      ...prev,
-      [dateKey]: {
-        ...prev[dateKey],
-        [apptId]: !prev[dateKey]?.[apptId],
-      },
-    }));
-  };
-
-  const saveMedication = (med: Medication) => {
-    setMedications(prev => {
-      const exists = prev.findIndex(m => m.id === med.id);
-      if (exists >= 0) {
-        const updated = [...prev];
-        updated[exists] = med;
-        return updated;
-      }
-      return [...prev, med];
-    });
+  const handleSaveMed = async (med: Medication) => {
+    await saveMedication(med);
     setShowMedForm(false);
     setEditingMed(null);
   };
 
-  const saveAppointment = (appt: Appointment) => {
-    setAppointments(prev => {
-      const exists = prev.findIndex(a => a.id === appt.id);
-      if (exists >= 0) {
-        const updated = [...prev];
-        updated[exists] = appt;
-        return updated;
-      }
-      return [...prev, appt];
-    });
+  const handleSaveAppt = async (appt: Appointment) => {
+    await saveAppointment(appt);
     setShowApptForm(false);
     setEditingAppt(null);
-  };
-
-  const deleteMedication = (id: string) => {
-    setMedications(prev => prev.filter(m => m.id !== id));
-  };
-
-  const deleteAppointment = (id: string) => {
-    setAppointments(prev => prev.filter(a => a.id !== id));
   };
 
   const canMarkArrival = (appt: Appointment): boolean => {
@@ -200,7 +136,13 @@ const Index = () => {
     return now >= apptTime;
   };
 
-  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24 max-w-md mx-auto">
@@ -248,6 +190,13 @@ const Index = () => {
               title={isSubscribed ? 'התראות פעילות - לחץ לכיבוי' : 'אפשר התראות'}
             >
               {isSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={signOut}
+              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+              title="התנתק"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </span>
         </h1>
@@ -306,7 +255,7 @@ const Index = () => {
                     medication={inst.medication}
                     time={inst.time}
                     completed={!!completions[dateKey]?.[`${inst.medicationId}_${inst.time}`]}
-                    onToggleComplete={() => toggleCompletion(inst.medicationId, inst.time)}
+                    onToggleComplete={() => toggleCompletion(inst.medicationId, inst.time, dateKey)}
                     onCardClick={() => setActionTarget({ type: 'med', med: inst.medication })}
                   />
                 ))}
@@ -331,7 +280,7 @@ const Index = () => {
                     appointment={appt}
                     canMarkArrival={canMarkArrival(appt)}
                     arrived={!!arrivals[dateKey]?.[appt.id]}
-                    onMarkArrival={() => toggleArrival(appt.id)}
+                    onMarkArrival={() => toggleArrival(appt.id, dateKey)}
                     onCardClick={() => setActionTarget({ type: 'appt', appt })}
                   />
                 ))}
@@ -379,7 +328,7 @@ const Index = () => {
       {/* Forms */}
       {showMedForm && (
         <AddMedicationForm
-          onSave={saveMedication}
+          onSave={handleSaveMed}
           onClose={() => { setShowMedForm(false); setEditingMed(null); }}
           editingMedication={editingMed}
         />
@@ -387,7 +336,7 @@ const Index = () => {
       <InstallBanner />
       {showApptForm && (
         <AddAppointmentForm
-          onSave={saveAppointment}
+          onSave={handleSaveAppt}
           onClose={() => { setShowApptForm(false); setEditingAppt(null); }}
           editingAppointment={editingAppt}
           defaultDate={dateKey}
@@ -423,10 +372,10 @@ const Index = () => {
         open={!!confirmDelete}
         title={confirmDelete?.type === 'med' ? 'מחיקת תרופה' : 'ביטול תור'}
         description={`האם למחוק את "${confirmDelete?.name || ''}"? פעולה זו אינה ניתנת לביטול.`}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (confirmDelete) {
-            if (confirmDelete.type === 'med') deleteMedication(confirmDelete.id);
-            else deleteAppointment(confirmDelete.id);
+            if (confirmDelete.type === 'med') await deleteMedication(confirmDelete.id);
+            else await deleteAppointment(confirmDelete.id);
           }
           setConfirmDelete(null);
         }}
