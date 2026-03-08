@@ -73,7 +73,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
       endDate: endDate || undefined,
       notes: notes.trim(),
       instruction: instruction.trim(),
-      reminderMinutes,
+      reminderMinutes: reminderMinutes === '' ? 0 : reminderMinutes,
     });
   };
 
