@@ -113,7 +113,9 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
             <div className="space-y-2 mt-1">
               {times.map((t, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <Input type="time" value={t} onChange={(e) => updateTime(i, e.target.value)} className="flex-1" />
+                  <div className="flex-1">
+                    <TimePicker value={t} onChange={(val) => updateTime(i, val)} />
+                  </div>
                   {times.length > 1 && (
                     <button type="button" onClick={() => removeTime(i)} className="p-2 text-destructive hover:bg-destructive/10 rounded-lg">
                       <Trash2 className="w-4 h-4" />

@@ -86,7 +86,9 @@ const AddAppointmentForm: React.FC<AddAppointmentFormProps> = ({ onSave, onClose
             </div>
             <div>
               <Label>שעה *</Label>
-              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="mt-1" />
+              <div className="mt-1">
+                <TimePicker value={time} onChange={setTime} />
+              </div>
             </div>
           </div>
 
