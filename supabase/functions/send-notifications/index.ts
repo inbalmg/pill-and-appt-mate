@@ -5,176 +5,204 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Web Push helper functions using Web Crypto API
-async function sendWebPush(subscription: { endpoint: string; p256dh: string; auth: string }, payload: string, vapidKeys: { publicKey: string; privateKey: string }) {
-  const vapidPrivateKeyJwk = JSON.parse(vapidKeys.privateKey);
-  
-  const privateKey = await crypto.subtle.importKey(
-    'jwk',
-    vapidPrivateKeyJwk,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
-    ['sign']
-  );
+// ---- Web Push encryption using Web Crypto API (RFC 8291 / aes128gcm) ----
 
-  const jwtHeader = btoa(JSON.stringify({ typ: 'JWT', alg: 'ES256' }))
+function base64UrlToBytes(b64url: string): Uint8Array {
+  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+  const bin = atob(b64 + pad);
+  return Uint8Array.from(bin, c => c.charCodeAt(0));
+}
+
+function bytesToBase64Url(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function concat(...arrays: Uint8Array[]): Uint8Array {
+  const len = arrays.reduce((a, b) => a + b.length, 0);
+  const result = new Uint8Array(len);
+  let offset = 0;
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
+  }
+  return result;
+}
+
+async function hkdf(salt: Uint8Array, ikm: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> {
+  // Extract
+  const prkKey = await crypto.subtle.importKey('raw', salt.length ? salt : new Uint8Array(32), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const prk = new Uint8Array(await crypto.subtle.sign('HMAC', prkKey, ikm));
   
-  const audience = new URL(subscription.endpoint).origin;
+  // Expand
+  const infoWithCounter = concat(info, new Uint8Array([1]));
+  const hmacKey = await crypto.subtle.importKey('raw', prk, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const result = new Uint8Array(await crypto.subtle.sign('HMAC', hmacKey, infoWithCounter));
+  return result.slice(0, length);
+}
+
+async function encryptPayload(
+  clientPublicKeyB64: string,
+  clientAuthB64: string,
+  payload: Uint8Array
+): Promise<{ ciphertext: Uint8Array; salt: Uint8Array; serverPublicKey: Uint8Array }> {
+  const te = new TextEncoder();
+  
+  // Client keys
+  const clientPublicKeyBytes = base64UrlToBytes(clientPublicKeyB64);
+  const clientAuthBytes = base64UrlToBytes(clientAuthB64);
+  
+  // Generate server ephemeral key pair
+  const serverKeyPair = await crypto.subtle.generateKey(
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true,
+    ['deriveBits']
+  );
+  
+  const serverPublicKeyRaw = new Uint8Array(await crypto.subtle.exportKey('raw', serverKeyPair.publicKey));
+  
+  // Import client public key
+  const clientPublicKey = await crypto.subtle.importKey(
+    'raw', clientPublicKeyBytes,
+    { name: 'ECDH', namedCurve: 'P-256' },
+    false, []
+  );
+  
+  // ECDH shared secret
+  const sharedSecretBits = await crypto.subtle.deriveBits(
+    { name: 'ECDH', public: clientPublicKey },
+    serverKeyPair.privateKey,
+    256
+  );
+  const sharedSecret = new Uint8Array(sharedSecretBits);
+  
+  // Random salt
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  
+  // IKM from auth secret (RFC 8291 Section 3.3)
+  const authInfo = concat(te.encode('WebPush: info\0'), clientPublicKeyBytes, serverPublicKeyRaw);
+  const ikm = await hkdf(clientAuthBytes, sharedSecret, authInfo, 32);
+  
+  // Content encryption key and nonce
+  const cekInfo = concat(te.encode('Content-Encoding: aes128gcm\0'));
+  const nonceInfo = concat(te.encode('Content-Encoding: nonce\0'));
+  
+  const contentKey = await hkdf(salt, ikm, cekInfo, 16);
+  const nonce = await hkdf(salt, ikm, nonceInfo, 12);
+  
+  // Pad payload (add delimiter byte 0x02 per RFC 8188)
+  const paddedPayload = concat(payload, new Uint8Array([2]));
+  
+  // Encrypt
+  const aesKey = await crypto.subtle.importKey('raw', contentKey, { name: 'AES-GCM' }, false, ['encrypt']);
+  const encrypted = new Uint8Array(
+    await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce }, aesKey, paddedPayload)
+  );
+  
+  // Build aes128gcm header: salt(16) + rs(4) + idlen(1) + keyid(65)
+  const rs = 4096; // record size
+  const header = new Uint8Array(86); // 16 + 4 + 1 + 65
+  header.set(salt, 0);
+  new DataView(header.buffer).setUint32(16, rs, false);
+  header[20] = 65;
+  header.set(serverPublicKeyRaw, 21);
+  
+  const ciphertext = concat(header, encrypted);
+  
+  return { ciphertext, salt, serverPublicKey: serverPublicKeyRaw };
+}
+
+function derToRaw(der: Uint8Array): Uint8Array {
+  // Parse DER ECDSA signature to raw r||s format
+  if (der[0] !== 0x30) throw new Error('Invalid DER signature');
+  let offset = 2;
+  
+  // r
+  if (der[offset] !== 0x02) throw new Error('Invalid DER r');
+  offset++;
+  const rLen = der[offset]; offset++;
+  const rBytes = der.slice(offset, offset + rLen);
+  offset += rLen;
+  
+  // s  
+  if (der[offset] !== 0x02) throw new Error('Invalid DER s');
+  offset++;
+  const sLen = der[offset]; offset++;
+  const sBytes = der.slice(offset, offset + sLen);
+  
+  // Pad/trim to 32 bytes each
+  const raw = new Uint8Array(64);
+  raw.set(rBytes.length > 32 ? rBytes.slice(rBytes.length - 32) : rBytes, 32 - Math.min(rBytes.length, 32));
+  raw.set(sBytes.length > 32 ? sBytes.slice(sBytes.length - 32) : sBytes, 64 - Math.min(sBytes.length, 32));
+  
+  return raw;
+}
+
+async function createVapidAuth(endpoint: string, vapidPublicKey: string, vapidPrivateKeyJwk: any): Promise<string> {
+  const privateKey = await crypto.subtle.importKey(
+    'jwk', vapidPrivateKeyJwk,
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    false, ['sign']
+  );
+  
+  const audience = new URL(endpoint).origin;
   const now = Math.floor(Date.now() / 1000);
-  const jwtPayload = btoa(JSON.stringify({
+  
+  const headerB64 = bytesToBase64Url(new TextEncoder().encode(JSON.stringify({ typ: 'JWT', alg: 'ES256' })));
+  const payloadB64 = bytesToBase64Url(new TextEncoder().encode(JSON.stringify({
     aud: audience,
     exp: now + 86400,
     sub: 'mailto:notifications@pill-mate.app',
-  })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  const unsignedToken = `${jwtHeader}.${jwtPayload}`;
-  const encoder = new TextEncoder();
-  const signature = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: 'SHA-256' },
-    privateKey,
-    encoder.encode(unsignedToken)
+  })));
+  
+  const unsignedToken = `${headerB64}.${payloadB64}`;
+  const sig = new Uint8Array(
+    await crypto.subtle.sign(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      privateKey,
+      new TextEncoder().encode(unsignedToken)
+    )
   );
+  
+  // Convert DER to raw if needed
+  const rawSig = sig.length === 64 ? sig : derToRaw(sig);
+  const sigB64 = bytesToBase64Url(rawSig);
+  
+  return `vapid t=${unsignedToken}.${sigB64}, k=${vapidPublicKey}`;
+}
 
-  const sigArray = new Uint8Array(signature);
-  let rawSig: Uint8Array;
-  if (sigArray.length === 64) {
-    rawSig = sigArray;
-  } else {
-    rawSig = derToRaw(sigArray);
-  }
-
-  const sigBase64 = btoa(String.fromCharCode(...rawSig))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  const jwt = `${unsignedToken}.${sigBase64}`;
-
-  const { ciphertext, salt, serverPublicKey } = await encryptPayload(
-    subscription.p256dh,
-    subscription.auth,
-    encoder.encode(payload)
-  );
-
-  const response = await fetch(subscription.endpoint, {
+async function sendWebPush(
+  sub: { endpoint: string; p256dh: string; auth: string },
+  payload: string,
+  vapidPublicKey: string,
+  vapidPrivateKeyJwk: any
+): Promise<void> {
+  const payloadBytes = new TextEncoder().encode(payload);
+  
+  const { ciphertext } = await encryptPayload(sub.p256dh, sub.auth, payloadBytes);
+  const authorization = await createVapidAuth(sub.endpoint, vapidPublicKey, vapidPrivateKeyJwk);
+  
+  const response = await fetch(sub.endpoint, {
     method: 'POST',
     headers: {
-      'Authorization': `vapid t=${jwt}, k=${vapidKeys.publicKey}`,
+      'Authorization': authorization,
       'Content-Encoding': 'aes128gcm',
       'Content-Type': 'application/octet-stream',
       'TTL': '86400',
     },
     body: ciphertext,
   });
-
+  
+  const responseText = await response.text();
+  console.log(`Push response: ${response.status} ${responseText.substring(0, 200)}`);
+  
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Push failed [${response.status}]: ${text}`);
+    throw new Error(`Push failed [${response.status}]: ${responseText}`);
   }
-  
-  await response.text();
 }
 
-function derToRaw(der: Uint8Array): Uint8Array {
-  const raw = new Uint8Array(64);
-  let offset = 3;
-  const rLen = der[offset];
-  offset += 1;
-  const rStart = rLen === 33 ? offset + 1 : offset;
-  raw.set(der.slice(rStart, rStart + 32), 0);
-  offset += rLen + 1;
-  const sLen = der[offset];
-  offset += 1;
-  const sStart = sLen === 33 ? offset + 1 : offset;
-  raw.set(der.slice(sStart, sStart + 32), 32);
-  return raw;
-}
-
-async function encryptPayload(p256dhBase64: string, authBase64: string, payload: Uint8Array) {
-  const serverKeys = await crypto.subtle.generateKey(
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    ['deriveBits']
-  );
-
-  const p256dhBytes = base64UrlToBytes(p256dhBase64);
-  const authBytes = base64UrlToBytes(authBase64);
-
-  const subscriberKey = await crypto.subtle.importKey(
-    'raw',
-    p256dhBytes,
-    { name: 'ECDH', namedCurve: 'P-256' },
-    false,
-    []
-  );
-
-  const sharedSecret = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: subscriberKey },
-    serverKeys.privateKey,
-    256
-  );
-
-  const serverPublicKeyRaw = await crypto.subtle.exportKey('raw', serverKeys.publicKey);
-  const serverPublicKeyBytes = new Uint8Array(serverPublicKeyRaw);
-
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-
-  const encoder = new TextEncoder();
-  
-  const authInfo = new Uint8Array([
-    ...encoder.encode('WebPush: info\0'),
-    ...p256dhBytes,
-    ...serverPublicKeyBytes,
-  ]);
-
-  const prkBits = await hkdfExtractAndExpand(new Uint8Array(sharedSecret), authBytes, authInfo, 32);
-
-  const cekInfo = new Uint8Array([...encoder.encode('Content-Encoding: aes128gcm\0')]);
-  const nonceInfo = new Uint8Array([...encoder.encode('Content-Encoding: nonce\0')]);
-
-  const cek = await hkdfExtractAndExpand(prkBits, salt, cekInfo, 16);
-  const nonce = await hkdfExtractAndExpand(prkBits, salt, nonceInfo, 12);
-
-  const paddedPayload = new Uint8Array(payload.length + 1);
-  paddedPayload.set(payload);
-  paddedPayload[payload.length] = 2;
-
-  const key = await crypto.subtle.importKey('raw', cek, { name: 'AES-GCM' }, false, ['encrypt']);
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: nonce },
-    key,
-    paddedPayload
-  );
-
-  const rs = payload.length + 17 + 1;
-  const header = new Uint8Array(16 + 4 + 1 + 65);
-  header.set(salt, 0);
-  new DataView(header.buffer).setUint32(16, rs + 16, false);
-  header[20] = 65;
-  header.set(serverPublicKeyBytes, 21);
-
-  const result = new Uint8Array(header.length + encrypted.byteLength);
-  result.set(header);
-  result.set(new Uint8Array(encrypted), header.length);
-
-  return { ciphertext: result, salt, serverPublicKey: serverPublicKeyBytes };
-}
-
-async function hkdfExtractAndExpand(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey('raw', ikm, { name: 'HKDF' }, false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'HKDF', hash: 'SHA-256', salt, info },
-    key,
-    length * 8
-  );
-  return new Uint8Array(bits);
-}
-
-function base64UrlToBytes(base64url: string): Uint8Array {
-  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
-  const pad = base64.length % 4 === 0 ? '' : '='.repeat(4 - (base64.length % 4));
-  const binary = atob(base64 + pad);
-  return Uint8Array.from(binary, c => c.charCodeAt(0));
-}
+// ---- Main handler ----
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -190,6 +218,8 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const isCron = body.source === 'cron';
 
+    console.log(`[send-notifications] mode=${isCron ? 'cron' : 'client'}`);
+
     // Get VAPID keys
     const { data: vapidData } = await supabase
       .from('vapid_keys')
@@ -198,27 +228,27 @@ Deno.serve(async (req) => {
       .single();
 
     if (!vapidData) {
+      console.error('No VAPID keys found');
       return new Response(JSON.stringify({ error: 'VAPID keys not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get all subscriptions
-    const { data: subscriptions } = await supabase
-      .from('push_subscriptions')
-      .select('*');
+    const { data: subscriptions } = await supabase.from('push_subscriptions').select('*');
 
     if (!subscriptions || subscriptions.length === 0) {
+      console.log('No subscriptions');
       return new Response(JSON.stringify({ sent: 0, message: 'No subscriptions' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    console.log(`Subscriptions: ${subscriptions.length}`);
+
     let notifications: { key: string; title: string; body: string; tag: string; type: string }[] = [];
 
     if (isCron) {
-      // CRON MODE: Read due reminders from pending_reminders table
       const now = new Date().toISOString();
       const { data: dueReminders, error: remError } = await supabase
         .from('pending_reminders')
@@ -226,31 +256,20 @@ Deno.serve(async (req) => {
         .eq('sent', false)
         .lte('trigger_at', now);
 
-      if (remError) {
-        console.error('Error reading pending_reminders:', remError);
-        throw remError;
-      }
+      if (remError) throw remError;
 
       if (!dueReminders || dueReminders.length === 0) {
-        return new Response(JSON.stringify({ sent: 0, message: 'No reminders due (cron)' }), {
+        return new Response(JSON.stringify({ sent: 0, message: 'No reminders due' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      notifications = dueReminders.map(r => ({
-        key: r.notification_key,
-        title: r.title,
-        body: r.body,
-        tag: r.tag,
-        type: r.type,
-      }));
-
-      // Mark as sent
+      console.log(`Due reminders: ${dueReminders.length}`);
+      notifications = dueReminders.map(r => ({ key: r.notification_key, title: r.title, body: r.body, tag: r.tag, type: r.type }));
       const ids = dueReminders.map(r => r.id);
       await supabase.from('pending_reminders').update({ sent: true }).in('id', ids);
 
     } else if (body.medications || body.appointments) {
-      // CLIENT MODE: Process medications and appointments from request body
       const { medications, appointments } = body;
       const now = new Date();
       const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -260,19 +279,14 @@ Deno.serve(async (req) => {
           if (!med.reminderMinutes || med.reminderMinutes <= 0) continue;
           if (todayStr < med.startDate) continue;
           if (med.endDate && todayStr > med.endDate) continue;
-
           for (const time of med.times) {
             const [h, m] = time.split(':').map(Number);
-            const eventTime = new Date(now);
-            eventTime.setHours(h, m, 0, 0);
-            
+            const eventTime = new Date(now); eventTime.setHours(h, m, 0, 0);
             const reminderTime = new Date(eventTime.getTime() - med.reminderMinutes * 60000);
             const diffMs = now.getTime() - reminderTime.getTime();
-            
             if (diffMs >= 0 && diffMs <= 120000) {
-              const key = `med_${med.id}_${time}_${todayStr}`;
               notifications.push({
-                key,
+                key: `med_${med.id}_${time}_${todayStr}`,
                 title: `💊 תזכורת תרופה`,
                 body: `${med.name}${med.dosage ? ' ' + med.dosage : ''} - ${time}${med.instruction ? '\n' + med.instruction : ''}`,
                 tag: `med_${med.id}_${time}`,
@@ -287,18 +301,13 @@ Deno.serve(async (req) => {
         for (const appt of appointments) {
           if (!appt.reminderMinutes || appt.reminderMinutes <= 0) continue;
           if (appt.date !== todayStr) continue;
-
           const [h, m] = appt.time.split(':').map(Number);
-          const eventTime = new Date(now);
-          eventTime.setHours(h, m, 0, 0);
-          
+          const eventTime = new Date(now); eventTime.setHours(h, m, 0, 0);
           const reminderTime = new Date(eventTime.getTime() - appt.reminderMinutes * 60000);
           const diffMs = now.getTime() - reminderTime.getTime();
-          
           if (diffMs >= 0 && diffMs <= 120000) {
-            const key = `appt_${appt.id}_${todayStr}`;
             notifications.push({
-              key,
+              key: `appt_${appt.id}_${todayStr}`,
               title: `🏥 תזכורת תור`,
               body: `${appt.type} - ${appt.time}${appt.doctor ? '\nאצל ' + appt.doctor : ''}${appt.location ? '\nב' + appt.location : ''}`,
               tag: `appt_${appt.id}`,
@@ -308,23 +317,22 @@ Deno.serve(async (req) => {
         }
       }
     } else {
-      return new Response(JSON.stringify({ sent: 0, message: 'No events to check' }), {
+      return new Response(JSON.stringify({ sent: 0, message: 'No events' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Filter out already-sent notifications (for client mode; cron mode already filtered)
+    // Dedup for client mode
     if (notifications.length > 0 && !isCron) {
       const keys = notifications.map(n => n.key);
-      const { data: existing } = await supabase
-        .from('notification_log')
-        .select('notification_key')
-        .in('notification_key', keys);
-
+      const { data: existing } = await supabase.from('notification_log').select('notification_key').in('notification_key', keys);
       const sentKeys = new Set(existing?.map(e => e.notification_key) || []);
       notifications = notifications.filter(n => !sentKeys.has(n.key));
     }
 
+    console.log(`Notifications to send: ${notifications.length}`);
+
+    const vapidPrivateJwk = JSON.parse(vapidData.private_key);
     let sentCount = 0;
     const failedEndpoints: string[] = [];
 
@@ -340,36 +348,32 @@ Deno.serve(async (req) => {
 
       for (const sub of subscriptions) {
         try {
-          await sendWebPush(
-            { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
-            payload,
-            { publicKey: vapidData.public_key, privateKey: vapidData.private_key }
-          );
+          console.log(`Sending to ${sub.endpoint.substring(0, 80)}...`);
+          await sendWebPush(sub, payload, vapidData.public_key, vapidPrivateJwk);
           sentCount++;
         } catch (error) {
-          console.error(`Failed to send to ${sub.endpoint}:`, error.message);
+          console.error(`Push error: ${error.message}`);
           if (error.message.includes('410') || error.message.includes('404')) {
             failedEndpoints.push(sub.endpoint);
           }
         }
       }
 
-      // Log as sent (for dedup in client mode)
       if (!isCron) {
         await supabase.from('notification_log').upsert({ notification_key: notification.key });
       }
     }
 
-    // Clean up expired subscriptions
     if (failedEndpoints.length > 0) {
       await supabase.from('push_subscriptions').delete().in('endpoint', failedEndpoints);
     }
 
-    // Clean old data
-    const now = new Date();
-    const twoDaysAgo = new Date(now.getTime() - 2 * 86400000).toISOString();
+    // Cleanup old data
+    const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
     await supabase.from('notification_log').delete().lt('sent_at', twoDaysAgo);
     await supabase.from('pending_reminders').delete().eq('sent', true).lt('trigger_at', twoDaysAgo);
+
+    console.log(`Result: sent=${sentCount}, checked=${notifications.length}`);
 
     return new Response(JSON.stringify({ sent: sentCount, checked: notifications.length, mode: isCron ? 'cron' : 'client' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
