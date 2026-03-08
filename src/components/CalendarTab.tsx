@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getDay, addMonths, subMonths, addWeeks, subWeeks, startOfDay } from 'date-fns';
-import { ChevronRight, ChevronLeft, Filter, Clock, MapPin, CalendarDays } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Clock, MapPin, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 import type { Appointment } from '@/types';
