@@ -14,6 +14,169 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          created_at: string
+          date: string
+          doctor: string
+          id: string
+          location: string
+          notes: string
+          reminder_minutes: number
+          time: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          doctor?: string
+          id?: string
+          location?: string
+          notes?: string
+          reminder_minutes?: number
+          time: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          doctor?: string
+          id?: string
+          location?: string
+          notes?: string
+          reminder_minutes?: number
+          time?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      arrivals: {
+        Row: {
+          appointment_id: string
+          arrived: boolean
+          created_at: string
+          date: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id: string
+          arrived?: boolean
+          created_at?: string
+          date: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string
+          arrived?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arrivals_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      completions: {
+        Row: {
+          completed: boolean
+          created_at: string
+          date: string
+          id: string
+          medication_id: string
+          time: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          date: string
+          id?: string
+          medication_id: string
+          time: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          medication_id?: string
+          time?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "completions_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medications: {
+        Row: {
+          created_at: string
+          dosage: string | null
+          end_date: string | null
+          frequency: string
+          id: string
+          instruction: string | null
+          interval_days: number | null
+          name: string
+          notes: string
+          reminder_minutes: number
+          start_date: string
+          times: string[]
+          user_id: string
+          week_day: number | null
+        }
+        Insert: {
+          created_at?: string
+          dosage?: string | null
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          instruction?: string | null
+          interval_days?: number | null
+          name: string
+          notes?: string
+          reminder_minutes?: number
+          start_date?: string
+          times?: string[]
+          user_id: string
+          week_day?: number | null
+        }
+        Update: {
+          created_at?: string
+          dosage?: string | null
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          instruction?: string | null
+          interval_days?: number | null
+          name?: string
+          notes?: string
+          reminder_minutes?: number
+          start_date?: string
+          times?: string[]
+          user_id?: string
+          week_day?: number | null
+        }
+        Relationships: []
+      }
       notification_log: {
         Row: {
           id: string
