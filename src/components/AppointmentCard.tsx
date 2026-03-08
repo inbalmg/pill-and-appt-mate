@@ -7,6 +7,7 @@ interface AppointmentCardProps {
   canMarkArrival: boolean;
   arrived: boolean;
   onMarkArrival: () => void;
+  onCardClick?: () => void;
 }
 
 const AppointmentCard: React.FC<AppointmentCardProps> = ({
@@ -14,9 +15,10 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   canMarkArrival,
   arrived,
   onMarkArrival,
+  onCardClick,
 }) => {
   return (
-    <div dir="rtl" className="bg-card rounded-2xl p-4 card-shadow border border-medical/20">
+    <div dir="rtl" className="bg-card rounded-2xl p-4 card-shadow border border-medical/20 cursor-pointer active:scale-[0.98] transition-transform" onClick={onCardClick}>
       <div className="flex items-start gap-3">
         {/* Right zone: appointment details */}
         <div className="flex-1 min-w-0">
@@ -54,7 +56,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
           </div>
           {canMarkArrival && (
             <button
-              onClick={onMarkArrival}
+              onClick={(e) => { e.stopPropagation(); onMarkArrival(); }}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all
                 ${arrived
                   ? 'bg-success text-success-foreground'

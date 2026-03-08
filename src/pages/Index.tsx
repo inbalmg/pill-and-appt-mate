@@ -1,12 +1,14 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isSameDay, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, Edit, Trash2, RotateCcw, Bell, BellOff, BookOpen } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, RotateCcw, Bell, BellOff, BookOpen } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
 import AddMedicationForm from '@/components/AddMedicationForm';
 import AddAppointmentForm from '@/components/AddAppointmentForm';
 import CalendarTab from '@/components/CalendarTab';
+import ActionSheet from '@/components/ActionSheet';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -25,6 +27,8 @@ const Index = () => {
   const [showApptForm, setShowApptForm] = useState(false);
   const [editingMed, setEditingMed] = useState<Medication | null>(null);
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
+  const [actionTarget, setActionTarget] = useState<{ type: 'med' | 'appt'; med?: Medication; appt?: Appointment } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'med' | 'appt'; id: string; name: string } | null>(null);
 
   const [medications, setMedications] = useLocalStorage<Medication[]>('medications', []);
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
@@ -283,28 +287,14 @@ const Index = () => {
             ) : (
               <div className="space-y-2">
                 {dailyMedInstances.map((inst) => (
-                  <div key={`${inst.medicationId}_${inst.time}`} className="relative group">
-                    <MedicationCard
-                      medication={inst.medication}
-                      time={inst.time}
-                      completed={!!completions[dateKey]?.[`${inst.medicationId}_${inst.time}`]}
-                      onToggleComplete={() => toggleCompletion(inst.medicationId, inst.time)}
-                    />
-                    <div className="absolute top-2 start-2 bottom-2 flex flex-col justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => { setEditingMed(inst.medication); setShowMedForm(true); }}
-                        className="p-1 rounded-lg bg-muted hover:bg-secondary transition-colors"
-                      >
-                        <Edit className="w-3 h-3 text-muted-foreground" />
-                      </button>
-                      <button
-                        onClick={() => deleteMedication(inst.medicationId)}
-                        className="p-1 rounded-lg bg-muted hover:bg-destructive/10 transition-colors"
-                      >
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </button>
-                    </div>
-                  </div>
+                  <MedicationCard
+                    key={`${inst.medicationId}_${inst.time}`}
+                    medication={inst.medication}
+                    time={inst.time}
+                    completed={!!completions[dateKey]?.[`${inst.medicationId}_${inst.time}`]}
+                    onToggleComplete={() => toggleCompletion(inst.medicationId, inst.time)}
+                    onCardClick={() => setActionTarget({ type: 'med', med: inst.medication })}
+                  />
                 ))}
               </div>
             )}
@@ -322,28 +312,14 @@ const Index = () => {
             ) : (
               <div className="space-y-2">
                 {dailyAppointments.map((appt) => (
-                  <div key={appt.id} className="relative group">
-                    <AppointmentCard
-                      appointment={appt}
-                      canMarkArrival={canMarkArrival(appt)}
-                      arrived={!!arrivals[dateKey]?.[appt.id]}
-                      onMarkArrival={() => toggleArrival(appt.id)}
-                    />
-                    <div className="absolute top-3 start-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => { setEditingAppt(appt); setShowApptForm(true); }}
-                        className="p-1.5 rounded-lg bg-muted hover:bg-secondary transition-colors"
-                      >
-                        <Edit className="w-3.5 h-3.5 text-muted-foreground" />
-                      </button>
-                      <button
-                        onClick={() => deleteAppointment(appt.id)}
-                        className="p-1.5 rounded-lg bg-muted hover:bg-destructive/10 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </button>
-                    </div>
-                  </div>
+                  <AppointmentCard
+                    key={appt.id}
+                    appointment={appt}
+                    canMarkArrival={canMarkArrival(appt)}
+                    arrived={!!arrivals[dateKey]?.[appt.id]}
+                    onMarkArrival={() => toggleArrival(appt.id)}
+                    onCardClick={() => setActionTarget({ type: 'appt', appt })}
+                  />
                 ))}
               </div>
             )}
@@ -403,6 +379,45 @@ const Index = () => {
           defaultDate={dateKey}
         />
       )}
+
+      {/* Action Sheet */}
+      {actionTarget && (
+        <ActionSheet
+          title={actionTarget.type === 'med' ? actionTarget.med!.name : actionTarget.appt!.type}
+          onEdit={() => {
+            if (actionTarget.type === 'med') {
+              setEditingMed(actionTarget.med!);
+              setShowMedForm(true);
+            } else {
+              setEditingAppt(actionTarget.appt!);
+              setShowApptForm(true);
+            }
+            setActionTarget(null);
+          }}
+          onDelete={() => {
+            const id = actionTarget.type === 'med' ? actionTarget.med!.id : actionTarget.appt!.id;
+            const name = actionTarget.type === 'med' ? actionTarget.med!.name : actionTarget.appt!.type;
+            setConfirmDelete({ type: actionTarget.type, id, name });
+            setActionTarget(null);
+          }}
+          onClose={() => setActionTarget(null)}
+        />
+      )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={confirmDelete?.type === 'med' ? 'מחיקת תרופה' : 'ביטול תור'}
+        description={`האם למחוק את "${confirmDelete?.name || ''}"? פעולה זו אינה ניתנת לביטול.`}
+        onConfirm={() => {
+          if (confirmDelete) {
+            if (confirmDelete.type === 'med') deleteMedication(confirmDelete.id);
+            else deleteAppointment(confirmDelete.id);
+          }
+          setConfirmDelete(null);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 };
