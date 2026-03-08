@@ -17,6 +17,12 @@ const getTimeIcon = (time: string) => {
   return <Moon className="w-4 h-4 text-primary" />;
 };
 
+const getInstructionColor = (instruction: string) => {
+  if (instruction.includes('לפני')) return 'text-warning';
+  if (instruction.includes('אחרי')) return 'text-medical';
+  return 'text-muted-foreground';
+};
+
 const MedicationCard: React.FC<MedicationCardProps> = ({
   medication,
   time,
@@ -37,7 +43,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
             )}
           </div>
           {medication.instruction && (
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className={`text-xs mt-0.5 font-medium ${getInstructionColor(medication.instruction)}`}>
               {medication.instruction}
             </p>
           )}
