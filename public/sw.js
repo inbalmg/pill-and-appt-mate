@@ -1,13 +1,18 @@
 // Service Worker for Push Notifications
 
 self.addEventListener('push', function(event) {
-  let data = { title: 'תזכורת', body: '', icon: '/favicon.ico', type: 'med' };
+  let data = { title: 'תזכורת', body: '', icon: '/pwa-192x192.png', type: 'med' };
   
   if (event.data) {
     try {
-      data = { ...data, ...event.data.json() };
+      const parsed = event.data.json();
+      data = { ...data, ...parsed };
     } catch (e) {
-      data.body = event.data.text();
+      try {
+        data.body = event.data.text();
+      } catch (e2) {
+        data.body = 'יש לך תזכורת חדשה';
+      }
     }
   }
 
@@ -15,8 +20,8 @@ self.addEventListener('push', function(event) {
   const isMed = data.type === 'med';
   const options = {
     body: data.body,
-    icon: data.icon || '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: data.icon || '/pwa-192x192.png',
+    badge: '/pwa-192x192.png',
     vibrate: isMed ? [200, 100, 200] : [300, 150, 300],
     tag: data.tag || 'default',
     requireInteraction: true,
