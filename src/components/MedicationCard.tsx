@@ -7,6 +7,7 @@ interface MedicationCardProps {
   time: string;
   completed: boolean;
   onToggleComplete: () => void;
+  onCardClick?: () => void;
 }
 
 const getTimeIcon = (time: string) => {
