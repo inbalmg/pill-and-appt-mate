@@ -91,17 +91,8 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
 
   return (
     <div dir="rtl" className="space-y-3">
-      {/* Search & Filter */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="חיפוש תור..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-9 text-sm"
-          />
-        </div>
+      {/* Filter Only */}
+      <div className="flex gap-2 justify-end">
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-[130px] text-sm">
             <Filter className="w-3.5 h-3.5 ml-1" />
