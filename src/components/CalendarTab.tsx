@@ -16,7 +16,7 @@ type ViewMode = 'monthly' | 'weekly';
 const MONTH_NAMES_HE = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
 const DAY_NAMES_HE = ["יום א'", "יום ב'", "יום ג'", "יום ד'", "יום ה'", "יום ו'", 'שבת'];
 
-const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate }) => {
+const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate, onAppointmentClick }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
