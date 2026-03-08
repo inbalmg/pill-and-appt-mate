@@ -6,6 +6,23 @@ const SW_PATH = '/sw.js';
 const CHECK_INTERVAL_MS = 60000; // Check every minute
 const SYNC_DEBOUNCE_MS = 3000;
 
+const isIosPwa = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = (navigator as any).standalone === true || 
+    window.matchMedia('(display-mode: standalone)').matches;
+  return isIos && isStandalone;
+};
+
+const isIosDevice = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+};
+
+const isIosNotStandalone = (): boolean => {
+  return isIosDevice() && !isIosPwa();
+};
+
 export function useNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
