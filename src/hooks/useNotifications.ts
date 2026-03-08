@@ -43,8 +43,14 @@ export function useNotifications() {
   }, []);
 
   const subscribe = useCallback(async () => {
+    // iOS requires PWA (installed to home screen) for Push
+    if (isIosNotStandalone()) {
+      alert('כדי לקבל התראות ב-iPhone, יש קודם להתקין את האפליקציה למסך הבית:\n\nלחצ/י על כפתור השיתוף ⬆️ → ״הוסף למסך הבית״');
+      return false;
+    }
+
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('הדפדפן לא תומך בהתראות Push');
+      alert('הדפדפן לא תומך בהתראות Push.\nב-iPhone נדרש iOS 16.4 ומעלה + התקנה למסך הבית.');
       return false;
     }
 
