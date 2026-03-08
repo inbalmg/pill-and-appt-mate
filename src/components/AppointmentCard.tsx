@@ -56,7 +56,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
           </div>
           {canMarkArrival && (
             <button
-              onClick={onMarkArrival}
+              onClick={(e) => { e.stopPropagation(); onMarkArrival(); }}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all
                 ${arrived
                   ? 'bg-success text-success-foreground'
