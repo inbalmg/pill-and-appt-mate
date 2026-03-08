@@ -178,7 +178,6 @@ const Index = () => {
             return `${DAY_NAMES_HE[sel.getDay()]}, ${datePart}`;
           })()}
           <span className="text-sm font-normal text-muted-foreground ms-auto flex items-center gap-2">
-            {format(selectedDate, 'dd-MM-yyyy')}
             <button
               onClick={async () => {
                 if (isSubscribed) {
