@@ -21,6 +21,11 @@ interface ValidationResult {
   type: ImportType;
 }
 
+interface CombinedValidation {
+  medications: ValidationResult | null;
+  appointments: ValidationResult | null;
+}
+
 const MEDICATION_REQUIRED_FIELDS = ['name'];
 const APPOINTMENT_REQUIRED_FIELDS = ['type', 'date', 'time'];
 
