@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import TimePicker from '@/components/TimePicker';
 import type { Appointment } from '@/types';
 
 interface AddAppointmentFormProps {
@@ -85,7 +86,9 @@ const AddAppointmentForm: React.FC<AddAppointmentFormProps> = ({ onSave, onClose
             </div>
             <div>
               <Label>שעה *</Label>
-              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="mt-1" />
+              <div className="mt-1">
+                <TimePicker value={time} onChange={setTime} />
+              </div>
             </div>
           </div>
 
