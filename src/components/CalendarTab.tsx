@@ -164,6 +164,9 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
             const isCurrentMonth = viewMode === 'monthly' ? isSameMonth(day, currentDate) : true;
             const isToday = isSameDay(day, new Date());
             const isSelected = selectedDay && isSameDay(day, selectedDay);
+            const dayOfWeek = getDay(day); // 0=Sun, 6=Sat
+            const isSaturday = dayOfWeek === 6;
+            const isFriday = dayOfWeek === 5;
 
             return (
               <button
@@ -172,10 +175,10 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
                 className={`relative p-1 rounded-xl text-center transition-all min-h-[44px] flex flex-col items-center justify-start gap-0.5
                   ${!isCurrentMonth ? 'opacity-30' : ''}
                   ${isToday ? 'ring-1 ring-primary' : ''}
-                  ${isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}
+                  ${isSelected ? 'bg-primary text-primary-foreground' : isSaturday ? 'bg-destructive/10 hover:bg-destructive/20' : isFriday ? 'bg-yellow-100 dark:bg-yellow-900/20 hover:bg-yellow-200 dark:hover:bg-yellow-900/30' : 'hover:bg-muted'}
                 `}
               >
-                <span className={`text-xs font-medium ${isSelected ? 'text-primary-foreground' : ''}`}>
+                <span className={`text-xs font-medium ${isSelected ? 'text-primary-foreground' : isSaturday ? 'text-destructive' : isFriday ? 'text-yellow-600 dark:text-yellow-500' : ''}`}>
                   {format(day, 'd')}
                 </span>
                 {dayAppts.length > 0 && (
