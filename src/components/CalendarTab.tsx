@@ -1,0 +1,254 @@
+import React, { useState, useMemo } from 'react';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getDay, addMonths, subMonths, addWeeks, subWeeks, startOfDay } from 'date-fns';
+import { ChevronRight, ChevronLeft, Search, Filter, Clock, MapPin, CalendarDays } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Appointment } from '@/types';
+
+interface CalendarTabProps {
+  appointments: Appointment[];
+  onSelectDate: (date: Date) => void;
+}
+
+type ViewMode = 'monthly' | 'weekly';
+
+const MONTH_NAMES_HE = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+const DAY_NAMES_HE = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", 'ש'];
+
+const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate }) => {
+  const [viewMode, setViewMode] = useState<ViewMode>('monthly');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+
+  // Get unique appointment types for filter
+  const appointmentTypes = useMemo(() => {
+    const types = new Set(appointments.map(a => a.type));
+    return Array.from(types);
+  }, [appointments]);
+
+  // Filter appointments
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter(a => {
+      const matchesSearch = searchQuery === '' ||
+        a.type.includes(searchQuery) ||
+        a.doctor.includes(searchQuery) ||
+        a.location.includes(searchQuery);
+      const matchesFilter = filterType === 'all' || a.type === filterType;
+      return matchesSearch && matchesFilter;
+    });
+  }, [appointments, searchQuery, filterType]);
+
+  // Get appointments for a specific date
+  const getAppointmentsForDate = (date: Date) => {
+    const dateKey = format(date, 'yyyy-MM-dd');
+    return filteredAppointments.filter(a => a.date === dateKey);
+  };
+
+  // Generate calendar days
+  const calendarDays = useMemo(() => {
+    if (viewMode === 'monthly') {
+      const monthStart = startOfMonth(currentDate);
+      const monthEnd = endOfMonth(currentDate);
+      const calStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+      const calEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+
+      const days: Date[] = [];
+      let day = calStart;
+      while (day <= calEnd) {
+        days.push(day);
+        day = addDays(day, 1);
+      }
+      return days;
+    } else {
+      const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
+      const days: Date[] = [];
+      for (let i = 0; i < 7; i++) {
+        days.push(addDays(weekStart, i));
+      }
+      return days;
+    }
+  }, [currentDate, viewMode]);
+
+  const navigatePrev = () => {
+    if (viewMode === 'monthly') setCurrentDate(subMonths(currentDate, 1));
+    else setCurrentDate(subWeeks(currentDate, 1));
+  };
+
+  const navigateNext = () => {
+    if (viewMode === 'monthly') setCurrentDate(addMonths(currentDate, 1));
+    else setCurrentDate(addWeeks(currentDate, 1));
+  };
+
+  const handleDayClick = (day: Date) => {
+    setSelectedDay(day);
+    onSelectDate(day);
+  };
+
+  const selectedDayAppointments = selectedDay ? getAppointmentsForDate(selectedDay) : [];
+
+  return (
+    <div dir="rtl" className="space-y-3">
+      {/* Search & Filter */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="חיפוש תור..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pr-9 text-sm"
+          />
+        </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[130px] text-sm">
+            <Filter className="w-3.5 h-3.5 ml-1" />
+            <SelectValue placeholder="סוג תור" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">הכל</SelectItem>
+            {appointmentTypes.map(type => (
+              <SelectItem key={type} value={type}>{type}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* View Toggle + Navigation */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1 bg-muted rounded-lg p-0.5">
+          <button
+            onClick={() => setViewMode('monthly')}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+              viewMode === 'monthly' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
+          >
+            חודשי
+          </button>
+          <button
+            onClick={() => setViewMode('weekly')}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+              viewMode === 'weekly' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
+          >
+            שבועי
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button onClick={navigateNext} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          <span className="text-sm font-semibold min-w-[120px] text-center">
+            {viewMode === 'monthly'
+              ? `${MONTH_NAMES_HE[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+              : `שבוע ${format(calendarDays[0], 'dd/MM')} - ${format(calendarDays[6], 'dd/MM')}`
+            }
+          </span>
+          <button onClick={navigatePrev} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="bg-card rounded-2xl border border-border p-3 card-shadow">
+        {/* Day headers */}
+        <div className="grid grid-cols-7 mb-2">
+          {DAY_NAMES_HE.map(name => (
+            <div key={name} className="text-center text-xs font-medium text-muted-foreground py-1">
+              {name}
+            </div>
+          ))}
+        </div>
+
+        {/* Days */}
+        <div className="grid grid-cols-7 gap-0.5">
+          {calendarDays.map((day, idx) => {
+            const dayAppts = getAppointmentsForDate(day);
+            const isCurrentMonth = viewMode === 'monthly' ? isSameMonth(day, currentDate) : true;
+            const isToday = isSameDay(day, new Date());
+            const isSelected = selectedDay && isSameDay(day, selectedDay);
+
+            return (
+              <button
+                key={idx}
+                onClick={() => handleDayClick(day)}
+                className={`relative p-1 rounded-xl text-center transition-all min-h-[44px] flex flex-col items-center justify-start gap-0.5
+                  ${!isCurrentMonth ? 'opacity-30' : ''}
+                  ${isToday ? 'ring-1 ring-primary' : ''}
+                  ${isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}
+                `}
+              >
+                <span className={`text-xs font-medium ${isSelected ? 'text-primary-foreground' : ''}`}>
+                  {format(day, 'd')}
+                </span>
+                {dayAppts.length > 0 && (
+                  <div className="flex gap-0.5 flex-wrap justify-center">
+                    {dayAppts.slice(0, 3).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-primary-foreground' : 'bg-medical'}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Daily View (when a day is selected) */}
+      {selectedDay && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+            <CalendarDays className="w-4 h-4 text-primary" />
+            תורים ליום {format(selectedDay, 'dd/MM/yyyy')}
+            {selectedDayAppointments.length > 0 && (
+              <Badge variant="secondary" className="text-xs">{selectedDayAppointments.length}</Badge>
+            )}
+          </h3>
+
+          {selectedDayAppointments.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground text-sm">
+              אין תורים ליום זה
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {selectedDayAppointments
+                .sort((a, b) => a.time.localeCompare(b.time))
+                .map(appt => (
+                  <div
+                    key={appt.id}
+                    className="bg-card rounded-xl p-3 border border-medical/20 card-shadow"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm text-card-foreground">{appt.type}</h4>
+                        <p className="text-xs text-muted-foreground">{appt.doctor}</p>
+                        {appt.location && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                            <MapPin className="w-3 h-3" />
+                            {appt.location}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-medical shrink-0">
+                        <Clock className="w-3.5 h-3.5" />
+                        {appt.time}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CalendarTab;
