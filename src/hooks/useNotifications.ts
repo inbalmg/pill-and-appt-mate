@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Medication, Appointment } from '@/types';
 
 const SW_PATH = '/sw.js';
 const CHECK_INTERVAL_MS = 60000; // Check every minute
+const SYNC_DEBOUNCE_MS = 3000;
 
 export function useNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>(
@@ -11,6 +13,7 @@ export function useNotifications() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Check if already subscribed
   useEffect(() => {
@@ -30,7 +33,6 @@ export function useNotifications() {
 
     setIsLoading(true);
     try {
-      // Request permission
       const perm = await Notification.requestPermission();
       setPermission(perm);
       if (perm !== 'granted') {
@@ -38,11 +40,9 @@ export function useNotifications() {
         return false;
       }
 
-      // Register service worker
       const registration = await navigator.serviceWorker.register(SW_PATH);
       await navigator.serviceWorker.ready;
 
-      // Get VAPID public key from server
       const { data: vapidData, error: vapidError } = await supabase.functions.invoke('push-subscribe', {
         method: 'GET',
       });
@@ -51,10 +51,8 @@ export function useNotifications() {
         throw new Error('Failed to get VAPID key');
       }
 
-      // Convert VAPID key to Uint8Array
       const vapidPublicKey = urlBase64ToUint8Array(vapidData.publicKey);
 
-      // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: vapidPublicKey.buffer as ArrayBuffer,
@@ -62,7 +60,6 @@ export function useNotifications() {
 
       const subJson = subscription.toJSON();
 
-      // Save subscription to server
       const { error: saveError } = await supabase.functions.invoke('push-subscribe', {
         method: 'POST',
         body: {
@@ -96,38 +93,141 @@ export function useNotifications() {
           body: { endpoint },
         });
       }
+      // Clear pending reminders when bell is turned off
+      await supabase.from('pending_reminders' as any).delete().neq('id', '00000000-0000-0000-0000-000000000000');
       setIsSubscribed(false);
     } catch (error) {
       console.error('Unsubscribe error:', error);
     }
   }, []);
 
-  // Periodic check - sends medications/appointments to server to check for due notifications
-  const startNotificationChecker = useCallback((getMedications: () => any[], getAppointments: () => any[]) => {
+  // Sync reminders to DB so cron can send them even when app is closed
+  const syncRemindersToDb = useCallback(async (medications: Medication[], appointments: Appointment[]) => {
+    try {
+      const now = new Date();
+      const reminders: Array<{
+        notification_key: string;
+        trigger_at: string;
+        title: string;
+        body: string;
+        tag: string;
+        type: string;
+      }> = [];
+
+      // Process today and tomorrow
+      for (let dayOffset = 0; dayOffset <= 1; dayOffset++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() + dayOffset);
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const dayOfWeek = date.getDay();
+
+        // Medications
+        for (const med of medications) {
+          if (!med.reminderMinutes || med.reminderMinutes <= 0) continue;
+          if (dateStr < med.startDate) continue;
+          if (med.endDate && dateStr > med.endDate) continue;
+
+          let shouldInclude = false;
+          if (med.frequency === 'daily') shouldInclude = true;
+          else if (med.frequency === 'weekly' && med.weekDay === dayOfWeek) shouldInclude = true;
+          else if (med.frequency === 'once' && dateStr === med.startDate) shouldInclude = true;
+
+          if (!shouldInclude) continue;
+
+          for (const time of med.times) {
+            const [h, m] = time.split(':').map(Number);
+            const eventTime = new Date(date);
+            eventTime.setHours(h, m, 0, 0);
+            const triggerAt = new Date(eventTime.getTime() - med.reminderMinutes * 60000);
+
+            // Skip if already in the past
+            if (triggerAt.getTime() < now.getTime() - 120000) continue;
+
+            const key = `med_${med.id}_${time}_${dateStr}`;
+            reminders.push({
+              notification_key: key,
+              trigger_at: triggerAt.toISOString(),
+              title: '💊 תזכורת תרופה',
+              body: `${med.name}${med.dosage ? ' ' + med.dosage : ''} - ${time}${med.instruction ? '\n' + med.instruction : ''}`,
+              tag: `med_${med.id}_${time}`,
+              type: 'med',
+            });
+          }
+        }
+
+        // Appointments
+        for (const appt of appointments) {
+          if (!appt.reminderMinutes || appt.reminderMinutes <= 0) continue;
+          if (appt.date !== dateStr) continue;
+
+          const [h, m] = appt.time.split(':').map(Number);
+          const eventTime = new Date(date);
+          eventTime.setHours(h, m, 0, 0);
+          const triggerAt = new Date(eventTime.getTime() - appt.reminderMinutes * 60000);
+
+          if (triggerAt.getTime() < now.getTime() - 120000) continue;
+
+          const key = `appt_${appt.id}_${dateStr}`;
+          reminders.push({
+            notification_key: key,
+            trigger_at: triggerAt.toISOString(),
+            title: '🏥 תזכורת תור',
+            body: `${appt.type} - ${appt.time}${appt.doctor ? '\nאצל ' + appt.doctor : ''}${appt.location ? '\nב' + appt.location : ''}`,
+            tag: `appt_${appt.id}`,
+            type: 'appt',
+          });
+        }
+      }
+
+      // Upsert all reminders (ignore conflicts on existing keys)
+      if (reminders.length > 0) {
+        const { error } = await supabase
+          .from('pending_reminders' as any)
+          .upsert(reminders as any, { onConflict: 'notification_key', ignoreDuplicates: true });
+        if (error) console.error('Sync reminders error:', error);
+      }
+    } catch (error) {
+      console.error('syncRemindersToDb error:', error);
+    }
+  }, []);
+
+  // Periodic check + sync (debounced)
+  const startNotificationChecker = useCallback((getMedications: () => Medication[], getAppointments: () => Appointment[]) => {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     const check = async () => {
       if (!isSubscribed) return;
+      const meds = getMedications();
+      const appts = getAppointments();
       try {
+        // Sync to DB for cron-based delivery
+        await syncRemindersToDb(meds, appts);
+        
+        // Also do client-side check as backup
         await supabase.functions.invoke('send-notifications', {
-          body: {
-            medications: getMedications(),
-            appointments: getAppointments(),
-          },
+          body: { medications: meds, appointments: appts },
         });
       } catch (error) {
         console.error('Notification check error:', error);
       }
     };
 
-    // Check immediately then every minute
     check();
     intervalRef.current = setInterval(check, CHECK_INTERVAL_MS);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isSubscribed]);
+  }, [isSubscribed, syncRemindersToDb]);
+
+  // Debounced sync when data changes
+  const debouncedSync = useCallback((medications: Medication[], appointments: Appointment[]) => {
+    if (!isSubscribed) return;
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    syncTimeoutRef.current = setTimeout(() => {
+      syncRemindersToDb(medications, appointments);
+    }, SYNC_DEBOUNCE_MS);
+  }, [isSubscribed, syncRemindersToDb]);
 
   return {
     permission,
@@ -136,6 +236,7 @@ export function useNotifications() {
     subscribe,
     unsubscribe,
     startNotificationChecker,
+    debouncedSync,
   };
 }
 
