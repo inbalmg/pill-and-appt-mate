@@ -287,28 +287,14 @@ const Index = () => {
             ) : (
               <div className="space-y-2">
                 {dailyMedInstances.map((inst) => (
-                  <div key={`${inst.medicationId}_${inst.time}`} className="relative group">
-                    <MedicationCard
-                      medication={inst.medication}
-                      time={inst.time}
-                      completed={!!completions[dateKey]?.[`${inst.medicationId}_${inst.time}`]}
-                      onToggleComplete={() => toggleCompletion(inst.medicationId, inst.time)}
-                    />
-                    <div className="absolute top-2 start-2 bottom-2 flex flex-col justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => { setEditingMed(inst.medication); setShowMedForm(true); }}
-                        className="p-1 rounded-lg bg-muted hover:bg-secondary transition-colors"
-                      >
-                        <Edit className="w-3 h-3 text-muted-foreground" />
-                      </button>
-                      <button
-                        onClick={() => deleteMedication(inst.medicationId)}
-                        className="p-1 rounded-lg bg-muted hover:bg-destructive/10 transition-colors"
-                      >
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </button>
-                    </div>
-                  </div>
+                  <MedicationCard
+                    key={`${inst.medicationId}_${inst.time}`}
+                    medication={inst.medication}
+                    time={inst.time}
+                    completed={!!completions[dateKey]?.[`${inst.medicationId}_${inst.time}`]}
+                    onToggleComplete={() => toggleCompletion(inst.medicationId, inst.time)}
+                    onCardClick={() => setActionTarget({ type: 'med', med: inst.medication })}
+                  />
                 ))}
               </div>
             )}
