@@ -62,7 +62,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
         </div>
 
         <button
-          onClick={onToggleComplete}
+          onClick={(e) => { e.stopPropagation(); onToggleComplete(); }}
           className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200
             ${completed
               ? 'bg-success border-success'
