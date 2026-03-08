@@ -24,7 +24,9 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
   const [endDate, setEndDate] = useState(editingMedication?.endDate || '');
   const [notes, setNotes] = useState(editingMedication?.notes || '');
   const [instruction, setInstruction] = useState(editingMedication?.instruction || '');
-  const [reminderMinutes, setReminderMinutes] = useState(editingMedication?.reminderMinutes ?? 15);
+  const [reminderMinutes, setReminderMinutes] = useState<number | ''>(
+    editingMedication?.reminderMinutes ? editingMedication.reminderMinutes : ''
+  );
   const [errors, setErrors] = useState<string[]>([]);
 
   const addTime = () => setTimes([...times, '12:00']);
