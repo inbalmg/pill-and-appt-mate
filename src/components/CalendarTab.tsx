@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getDay, addMonths, subMonths, addWeeks, subWeeks, startOfDay } from 'date-fns';
-import { ChevronRight, ChevronLeft, Filter, Clock, MapPin, CalendarDays } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Clock, MapPin, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import type { Appointment } from '@/types';
 
 interface CalendarTabProps {
@@ -19,21 +19,8 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const [filterType, setFilterType] = useState<string>('all');
-
-  // Get unique appointment types for filter
-  const appointmentTypes = useMemo(() => {
-    const types = new Set(appointments.map(a => a.type));
-    return Array.from(types);
-  }, [appointments]);
-
-  // Filter appointments
-  const filteredAppointments = useMemo(() => {
-    return appointments.filter(a => {
-      const matchesFilter = filterType === 'all' || a.type === filterType;
-      return matchesFilter;
-    });
-  }, [appointments, filterType]);
+  // Use all appointments directly
+  const filteredAppointments = appointments;
 
   // Get appointments for a specific date
   const getAppointmentsForDate = (date: Date) => {
@@ -85,22 +72,6 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
 
   return (
     <div dir="rtl" className="space-y-3">
-      {/* Filter Only */}
-      <div className="flex gap-2 justify-end">
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[130px] text-sm">
-            <Filter className="w-3.5 h-3.5 ml-1" />
-            <SelectValue placeholder="סוג תור" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">הכל</SelectItem>
-            {appointmentTypes.map(type => (
-              <SelectItem key={type} value={type}>{type}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* View Toggle + Navigation */}
       <div className="flex items-center justify-between">
         <div className="flex gap-1 bg-muted rounded-lg p-0.5">
@@ -172,7 +143,7 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
                   ${isSelected ? 'bg-primary text-primary-foreground' : isSaturday ? 'bg-destructive/10 hover:bg-destructive/20' : 'hover:bg-muted'}
                 `}
               >
-                <span className={`text-xs font-medium ${isSelected ? 'text-primary-foreground' : isSaturday ? 'text-destructive' : ''}`}>
+                <span className={`text-xs ${dayAppts.length > 0 ? 'font-bold' : 'font-medium'} ${isSelected ? 'text-primary-foreground' : isSaturday ? 'text-destructive' : ''}`}>
                   {format(day, 'd')}
                 </span>
                 {dayAppts.length > 0 && (
