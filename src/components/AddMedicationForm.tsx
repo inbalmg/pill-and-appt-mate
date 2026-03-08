@@ -228,7 +228,17 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
 
           <div>
             <Label>תזכורת (דקות לפני)</Label>
-            <Input type="number" value={reminderMinutes} onChange={(e) => setReminderMinutes(Number(e.target.value))} min={0} className="mt-1" />
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={reminderMinutes === 0 ? '' : reminderMinutes}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '');
+                setReminderMinutes(val === '' ? '' : Number(val));
+              }}
+              placeholder="ללא תזכורת"
+              className="mt-1"
+            />
           </div>
 
           <div>
