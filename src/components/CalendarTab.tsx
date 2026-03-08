@@ -168,21 +168,26 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
                 onClick={() => handleDayClick(day)}
                 className={`relative p-1 rounded-xl text-center transition-all min-h-[44px] flex flex-col items-center justify-start gap-0.5
                   ${!isCurrentMonth ? 'opacity-30' : ''}
-                  ${isToday ? 'ring-1 ring-primary' : ''}
-                  ${isSelected ? 'bg-primary text-primary-foreground' : isSaturday ? 'bg-destructive/10 hover:bg-destructive/20' : isFriday ? 'bg-yellow-100 dark:bg-yellow-900/20 hover:bg-yellow-200 dark:hover:bg-yellow-900/30' : 'hover:bg-muted'}
+                  ${isToday && !isSelected ? 'bg-primary/10' : ''}
+                  ${isSelected ? 'bg-primary text-primary-foreground' : isSaturday ? 'bg-destructive/10 hover:bg-destructive/20' : 'hover:bg-muted'}
                 `}
               >
-                <span className={`text-xs font-medium ${isSelected ? 'text-primary-foreground' : isSaturday ? 'text-destructive' : isFriday ? 'text-yellow-600 dark:text-yellow-500' : ''}`}>
+                <span className={`text-xs font-medium ${isSelected ? 'text-primary-foreground' : isSaturday ? 'text-destructive' : ''}`}>
                   {format(day, 'd')}
                 </span>
                 {dayAppts.length > 0 && (
-                  <div className="flex gap-0.5 flex-wrap justify-center">
+                  <div className="flex gap-0.5 flex-wrap justify-center items-center">
                     {dayAppts.slice(0, 3).map((_, i) => (
                       <div
                         key={i}
                         className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-primary-foreground' : 'bg-medical'}`}
                       />
                     ))}
+                    {dayAppts.length > 3 && (
+                      <span className={`text-[9px] font-bold leading-none ${isSelected ? 'text-primary-foreground' : 'text-medical'}`}>
+                        +{dayAppts.length - 3}
+                      </span>
+                    )}
                   </div>
                 )}
               </button>
