@@ -69,15 +69,14 @@ const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onSelectDate, range
               <span className="text-xs font-medium mb-0.5 text-center">
                 {DAY_NAMES_HE[day.getDay()]}
               </span>
-              <span className={`text-lg font-bold ${isSelected ? '' : ''}`}>
+              <span className={`text-lg font-bold`}>
                 {format(day, 'd')}
               </span>
-              {isTodayDate && !isSelected && (
-                <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground mt-0.5" />
-              )}
-              {isTodayDate && isSelected && (
-                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-0.5" />
-              )}
+              <div className="h-1.5 mt-0.5 flex items-center justify-center">
+                {isTodayDate && (
+                  <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-primary' : 'bg-primary-foreground'}`} />
+                )}
+              </div>
             </button>
           );
         })}
