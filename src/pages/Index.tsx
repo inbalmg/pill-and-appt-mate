@@ -241,13 +241,6 @@ const Index = () => {
             >
               {isSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
             </button>
-            <button
-              onClick={handleReset}
-              className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-              title="איפוס נתונים"
-            >
-              <RotateCcw className="w-4 h-4 text-muted-foreground" />
-            </button>
           </span>
         </h1>
 

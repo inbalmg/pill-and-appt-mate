@@ -28,7 +28,7 @@ const AddAppointmentForm: React.FC<AddAppointmentFormProps> = ({ onSave, onClose
     if (!type.trim()) errs.push('סוג התור חובה');
     if (!date) errs.push('תאריך חובה');
     if (!time) errs.push('שעה חובה');
-    if (!doctor.trim()) errs.push('שם רופא חובה');
+    
     setErrors(errs);
     return errs.length === 0;
   };
