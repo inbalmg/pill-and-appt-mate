@@ -251,6 +251,9 @@ Deno.serve(async (req) => {
     // Check medications
     if (medications) {
       for (const med of medications) {
+        // Skip medications without a reminder setting
+        if (!med.reminderMinutes && med.reminderMinutes !== 0) continue;
+        if (med.reminderMinutes <= 0) continue;
         if (todayStr < med.startDate) continue;
         if (med.endDate && todayStr > med.endDate) continue;
 
@@ -279,6 +282,9 @@ Deno.serve(async (req) => {
     // Check appointments
     if (appointments) {
       for (const appt of appointments) {
+        // Skip appointments without a reminder setting
+        if (!appt.reminderMinutes && appt.reminderMinutes !== 0) continue;
+        if (appt.reminderMinutes <= 0) continue;
         if (appt.date !== todayStr) continue;
 
         const [h, m] = appt.time.split(':').map(Number);
