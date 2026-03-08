@@ -192,7 +192,8 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate, o
                 .map(appt => (
                   <div
                     key={appt.id}
-                    className="bg-card rounded-xl p-3 border border-medical/20 card-shadow"
+                    className="bg-card rounded-xl p-3 border border-medical/20 card-shadow cursor-pointer active:scale-[0.98] transition-transform"
+                    onClick={() => onAppointmentClick?.(appt)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
