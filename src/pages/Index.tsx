@@ -277,6 +277,7 @@ const Index = () => {
                 setSelectedDate(date);
                 setRangeStart(addDays(date, -2));
               }}
+              onAppointmentClick={(appt) => setActionTarget({ type: 'appt', appt })}
             />
           </TabsContent>
 

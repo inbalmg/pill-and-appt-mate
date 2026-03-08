@@ -8,6 +8,7 @@ import type { Appointment } from '@/types';
 interface CalendarTabProps {
   appointments: Appointment[];
   onSelectDate: (date: Date) => void;
+  onAppointmentClick?: (appointment: Appointment) => void;
 }
 
 type ViewMode = 'monthly' | 'weekly';
@@ -15,7 +16,7 @@ type ViewMode = 'monthly' | 'weekly';
 const MONTH_NAMES_HE = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
 const DAY_NAMES_HE = ["יום א'", "יום ב'", "יום ג'", "יום ד'", "יום ה'", "יום ו'", 'שבת'];
 
-const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate }) => {
+const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate, onAppointmentClick }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -191,7 +192,8 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
                 .map(appt => (
                   <div
                     key={appt.id}
-                    className="bg-card rounded-xl p-3 border border-medical/20 card-shadow"
+                    className="bg-card rounded-xl p-3 border border-medical/20 card-shadow cursor-pointer active:scale-[0.98] transition-transform"
+                    onClick={() => onAppointmentClick?.(appt)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
