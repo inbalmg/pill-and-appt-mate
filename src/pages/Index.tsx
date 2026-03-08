@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, Bell, BellOff, BookOpen, LogOut, Upload } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, Bell, BellOff, BookOpen, LogOut, Upload, Download } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
@@ -287,6 +287,33 @@ const Index = () => {
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
         {showAddMenu && (
           <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-4 duration-200">
+            <button
+              onClick={() => {
+                setShowAddMenu(false);
+                const data = {
+                  medications: medications.map(m => ({
+                    name: m.name, dosage: m.dosage, times: m.times, frequency: m.frequency,
+                    weekDay: m.weekDay, intervalDays: m.intervalDays, startDate: m.startDate,
+                    endDate: m.endDate, notes: m.notes, reminderMinutes: m.reminderMinutes, instruction: m.instruction,
+                  })),
+                  appointments: appointments.map(a => ({
+                    type: a.type, date: a.date, time: a.time, doctor: a.doctor,
+                    location: a.location, notes: a.notes, reminderMinutes: a.reminderMinutes,
+                  })),
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `pill-mate-backup-${format(new Date(), 'yyyy-MM-dd')}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="flex items-center gap-2 bg-card px-5 py-3 rounded-2xl card-shadow border border-border whitespace-nowrap hover:bg-secondary transition-colors"
+            >
+              <Download className="w-5 h-5 text-accent-foreground" />
+              <span className="font-medium text-sm">ייצוא נתונים</span>
+            </button>
             <button
               onClick={() => { setShowAddMenu(false); setShowImport(true); }}
               className="flex items-center gap-2 bg-card px-5 py-3 rounded-2xl card-shadow border border-border whitespace-nowrap hover:bg-secondary transition-colors"
