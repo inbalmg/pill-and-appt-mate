@@ -29,9 +29,14 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
   time,
   completed,
   onToggleComplete,
+  onCardClick,
 }) => {
   return (
-    <div dir="rtl" className={`bg-card rounded-xl px-3 py-2.5 card-shadow border transition-all duration-200 ${completed ? 'opacity-60 border-success/30' : 'border-border'}`}>
+    <div
+      dir="rtl"
+      className={`bg-card rounded-xl px-3 py-2.5 card-shadow border transition-all duration-200 cursor-pointer active:scale-[0.98] ${completed ? 'opacity-60 border-success/30' : 'border-border'}`}
+      onClick={onCardClick}
+    >
       <div className="flex items-center gap-3">
         {/* Right zone: name + dosage + instruction */}
         <div className="flex-1 min-w-0">
