@@ -113,4 +113,12 @@
     background: linear-gradient(135deg, hsl(174 62% 40%), hsl(174 62% 50%));
     color: hsl(0 0% 100%);
   }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
