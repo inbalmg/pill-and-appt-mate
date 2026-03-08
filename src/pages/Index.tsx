@@ -50,6 +50,13 @@ const Index = () => {
     }
   }, [isSubscribed, medications, appointments, startNotificationChecker]);
 
+  // Sync reminders to DB whenever data changes (for cron-based delivery when app is closed)
+  useEffect(() => {
+    if (isSubscribed) {
+      debouncedSync(medications, appointments);
+    }
+  }, [isSubscribed, medications, appointments, debouncedSync]);
+
   // Seed data once on first load
   useEffect(() => {
     if (!localStorage.getItem(SEED_KEY)) {
