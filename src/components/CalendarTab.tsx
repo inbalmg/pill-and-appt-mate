@@ -72,22 +72,6 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
 
   return (
     <div dir="rtl" className="space-y-3">
-      {/* Filter Only */}
-      <div className="flex gap-2 justify-end">
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[130px] text-sm">
-            <Filter className="w-3.5 h-3.5 ml-1" />
-            <SelectValue placeholder="סוג תור" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">הכל</SelectItem>
-            {appointmentTypes.map(type => (
-              <SelectItem key={type} value={type}>{type}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* View Toggle + Navigation */}
       <div className="flex items-center justify-between">
         <div className="flex gap-1 bg-muted rounded-lg p-0.5">
