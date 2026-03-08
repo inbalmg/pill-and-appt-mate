@@ -90,7 +90,7 @@ const AddAppointmentForm: React.FC<AddAppointmentFormProps> = ({ onSave, onClose
           </div>
 
           <div>
-            <Label>שם רופא *</Label>
+            <Label>שם רופא</Label>
             <Input value={doctor} onChange={(e) => setDoctor(e.target.value)} placeholder="ד״ר ישראלי" className="mt-1" />
           </div>
 
