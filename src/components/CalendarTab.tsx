@@ -20,7 +20,6 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
 
   // Get unique appointment types for filter
