@@ -32,6 +32,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_reminders: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          notification_key: string
+          sent: boolean
+          tag: string
+          title: string
+          trigger_at: string
+          type: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          notification_key: string
+          sent?: boolean
+          tag: string
+          title: string
+          trigger_at: string
+          type?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          notification_key?: string
+          sent?: boolean
+          tag?: string
+          title?: string
+          trigger_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
