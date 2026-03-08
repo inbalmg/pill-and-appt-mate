@@ -334,20 +334,6 @@ const Index = () => {
               <Pill className="w-5 h-5 text-primary" />
               <span className="font-medium text-sm">הוספת תרופה</span>
             </button>
-            <button
-              onClick={() => { setShowAddMenu(false); setEditingAppt(null); setShowApptForm(true); }}
-              className="flex items-center gap-2 bg-card px-5 py-3 rounded-2xl card-shadow border border-border whitespace-nowrap hover:bg-secondary transition-colors"
-            >
-              <Stethoscope className="w-5 h-5 text-medical" />
-              <span className="font-medium text-sm">הוספת תור</span>
-            </button>
-            <button
-              onClick={() => { setShowAddMenu(false); setEditingMed(null); setShowMedForm(true); }}
-              className="flex items-center gap-2 bg-card px-5 py-3 rounded-2xl card-shadow border border-border whitespace-nowrap hover:bg-secondary transition-colors"
-            >
-              <Pill className="w-5 h-5 text-primary" />
-              <span className="font-medium text-sm">הוספת תרופה</span>
-            </button>
           </div>
         )}
 
