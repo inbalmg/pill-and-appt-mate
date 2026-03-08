@@ -27,6 +27,8 @@ const Index = () => {
   const [showApptForm, setShowApptForm] = useState(false);
   const [editingMed, setEditingMed] = useState<Medication | null>(null);
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null);
+  const [actionTarget, setActionTarget] = useState<{ type: 'med' | 'appt'; med?: Medication; appt?: Appointment } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'med' | 'appt'; id: string; name: string } | null>(null);
 
   const [medications, setMedications] = useLocalStorage<Medication[]>('medications', []);
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
