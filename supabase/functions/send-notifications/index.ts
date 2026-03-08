@@ -1,180 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  buildPushHTTPRequest,
+  importVapidKeys,
+} from "https://esm.sh/@pushforge/builder@0.5.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
-
-// Web Push helper functions using Web Crypto API
-async function sendWebPush(subscription: { endpoint: string; p256dh: string; auth: string }, payload: string, vapidKeys: { publicKey: string; privateKey: string }) {
-  const vapidPrivateKeyJwk = JSON.parse(vapidKeys.privateKey);
-  
-  const privateKey = await crypto.subtle.importKey(
-    'jwk',
-    vapidPrivateKeyJwk,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
-    ['sign']
-  );
-
-  const jwtHeader = btoa(JSON.stringify({ typ: 'JWT', alg: 'ES256' }))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  
-  const audience = new URL(subscription.endpoint).origin;
-  const now = Math.floor(Date.now() / 1000);
-  const jwtPayload = btoa(JSON.stringify({
-    aud: audience,
-    exp: now + 86400,
-    sub: 'mailto:notifications@pill-mate.app',
-  })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  const unsignedToken = `${jwtHeader}.${jwtPayload}`;
-  const encoder = new TextEncoder();
-  const signature = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: 'SHA-256' },
-    privateKey,
-    encoder.encode(unsignedToken)
-  );
-
-  const sigArray = new Uint8Array(signature);
-  let rawSig: Uint8Array;
-  if (sigArray.length === 64) {
-    rawSig = sigArray;
-  } else {
-    rawSig = derToRaw(sigArray);
-  }
-
-  const sigBase64 = btoa(String.fromCharCode(...rawSig))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  const jwt = `${unsignedToken}.${sigBase64}`;
-
-  const { ciphertext, salt, serverPublicKey } = await encryptPayload(
-    subscription.p256dh,
-    subscription.auth,
-    encoder.encode(payload)
-  );
-
-  const response = await fetch(subscription.endpoint, {
-    method: 'POST',
-    headers: {
-      'Authorization': `vapid t=${jwt}, k=${vapidKeys.publicKey}`,
-      'Content-Encoding': 'aes128gcm',
-      'Content-Type': 'application/octet-stream',
-      'TTL': '86400',
-    },
-    body: ciphertext,
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Push failed [${response.status}]: ${text}`);
-  }
-  
-  await response.text();
-}
-
-function derToRaw(der: Uint8Array): Uint8Array {
-  const raw = new Uint8Array(64);
-  let offset = 3;
-  const rLen = der[offset];
-  offset += 1;
-  const rStart = rLen === 33 ? offset + 1 : offset;
-  raw.set(der.slice(rStart, rStart + 32), 0);
-  offset += rLen + 1;
-  const sLen = der[offset];
-  offset += 1;
-  const sStart = sLen === 33 ? offset + 1 : offset;
-  raw.set(der.slice(sStart, sStart + 32), 32);
-  return raw;
-}
-
-async function encryptPayload(p256dhBase64: string, authBase64: string, payload: Uint8Array) {
-  const serverKeys = await crypto.subtle.generateKey(
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    ['deriveBits']
-  );
-
-  const p256dhBytes = base64UrlToBytes(p256dhBase64);
-  const authBytes = base64UrlToBytes(authBase64);
-
-  const subscriberKey = await crypto.subtle.importKey(
-    'raw',
-    p256dhBytes,
-    { name: 'ECDH', namedCurve: 'P-256' },
-    false,
-    []
-  );
-
-  const sharedSecret = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: subscriberKey },
-    serverKeys.privateKey,
-    256
-  );
-
-  const serverPublicKeyRaw = await crypto.subtle.exportKey('raw', serverKeys.publicKey);
-  const serverPublicKeyBytes = new Uint8Array(serverPublicKeyRaw);
-
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-
-  const encoder = new TextEncoder();
-  
-  const authInfo = new Uint8Array([
-    ...encoder.encode('WebPush: info\0'),
-    ...p256dhBytes,
-    ...serverPublicKeyBytes,
-  ]);
-
-  const prkBits = await hkdfExtractAndExpand(new Uint8Array(sharedSecret), authBytes, authInfo, 32);
-
-  const cekInfo = new Uint8Array([...encoder.encode('Content-Encoding: aes128gcm\0')]);
-  const nonceInfo = new Uint8Array([...encoder.encode('Content-Encoding: nonce\0')]);
-
-  const cek = await hkdfExtractAndExpand(prkBits, salt, cekInfo, 16);
-  const nonce = await hkdfExtractAndExpand(prkBits, salt, nonceInfo, 12);
-
-  const paddedPayload = new Uint8Array(payload.length + 1);
-  paddedPayload.set(payload);
-  paddedPayload[payload.length] = 2;
-
-  const key = await crypto.subtle.importKey('raw', cek, { name: 'AES-GCM' }, false, ['encrypt']);
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: nonce },
-    key,
-    paddedPayload
-  );
-
-  const rs = payload.length + 17 + 1;
-  const header = new Uint8Array(16 + 4 + 1 + 65);
-  header.set(salt, 0);
-  new DataView(header.buffer).setUint32(16, rs + 16, false);
-  header[20] = 65;
-  header.set(serverPublicKeyBytes, 21);
-
-  const result = new Uint8Array(header.length + encrypted.byteLength);
-  result.set(header);
-  result.set(new Uint8Array(encrypted), header.length);
-
-  return { ciphertext: result, salt, serverPublicKey: serverPublicKeyBytes };
-}
-
-async function hkdfExtractAndExpand(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, length: number): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey('raw', ikm, { name: 'HKDF' }, false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'HKDF', hash: 'SHA-256', salt, info },
-    key,
-    length * 8
-  );
-  return new Uint8Array(bits);
-}
-
-function base64UrlToBytes(base64url: string): Uint8Array {
-  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
-  const pad = base64.length % 4 === 0 ? '' : '='.repeat(4 - (base64.length % 4));
-  const binary = atob(base64 + pad);
-  return Uint8Array.from(binary, c => c.charCodeAt(0));
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -190,6 +23,8 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const isCron = body.source === 'cron';
 
+    console.log(`[send-notifications] mode=${isCron ? 'cron' : 'client'}`);
+
     // Get VAPID keys
     const { data: vapidData } = await supabase
       .from('vapid_keys')
@@ -198,6 +33,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!vapidData) {
+      console.error('No VAPID keys found');
       return new Response(JSON.stringify({ error: 'VAPID keys not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -210,15 +46,17 @@ Deno.serve(async (req) => {
       .select('*');
 
     if (!subscriptions || subscriptions.length === 0) {
+      console.log('No push subscriptions found');
       return new Response(JSON.stringify({ sent: 0, message: 'No subscriptions' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    console.log(`Found ${subscriptions.length} subscription(s)`);
+
     let notifications: { key: string; title: string; body: string; tag: string; type: string }[] = [];
 
     if (isCron) {
-      // CRON MODE: Read due reminders from pending_reminders table
       const now = new Date().toISOString();
       const { data: dueReminders, error: remError } = await supabase
         .from('pending_reminders')
@@ -237,6 +75,8 @@ Deno.serve(async (req) => {
         });
       }
 
+      console.log(`Found ${dueReminders.length} due reminder(s)`);
+
       notifications = dueReminders.map(r => ({
         key: r.notification_key,
         title: r.title,
@@ -245,12 +85,10 @@ Deno.serve(async (req) => {
         type: r.type,
       }));
 
-      // Mark as sent
       const ids = dueReminders.map(r => r.id);
       await supabase.from('pending_reminders').update({ sent: true }).in('id', ids);
 
     } else if (body.medications || body.appointments) {
-      // CLIENT MODE: Process medications and appointments from request body
       const { medications, appointments } = body;
       const now = new Date();
       const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -265,10 +103,9 @@ Deno.serve(async (req) => {
             const [h, m] = time.split(':').map(Number);
             const eventTime = new Date(now);
             eventTime.setHours(h, m, 0, 0);
-            
             const reminderTime = new Date(eventTime.getTime() - med.reminderMinutes * 60000);
             const diffMs = now.getTime() - reminderTime.getTime();
-            
+
             if (diffMs >= 0 && diffMs <= 120000) {
               const key = `med_${med.id}_${time}_${todayStr}`;
               notifications.push({
@@ -291,10 +128,9 @@ Deno.serve(async (req) => {
           const [h, m] = appt.time.split(':').map(Number);
           const eventTime = new Date(now);
           eventTime.setHours(h, m, 0, 0);
-          
           const reminderTime = new Date(eventTime.getTime() - appt.reminderMinutes * 60000);
           const diffMs = now.getTime() - reminderTime.getTime();
-          
+
           if (diffMs >= 0 && diffMs <= 120000) {
             const key = `appt_${appt.id}_${todayStr}`;
             notifications.push({
@@ -313,17 +149,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Filter out already-sent notifications (for client mode; cron mode already filtered)
+    // Filter out already-sent notifications (for client mode)
     if (notifications.length > 0 && !isCron) {
       const keys = notifications.map(n => n.key);
       const { data: existing } = await supabase
         .from('notification_log')
         .select('notification_key')
         .in('notification_key', keys);
-
       const sentKeys = new Set(existing?.map(e => e.notification_key) || []);
       notifications = notifications.filter(n => !sentKeys.has(n.key));
     }
+
+    console.log(`Processing ${notifications.length} notification(s)`);
+
+    // Import VAPID keys for pushforge
+    const vapidPrivateJwk = JSON.parse(vapidData.private_key);
+    const vapidKeys = await importVapidKeys({
+      subject: 'mailto:notifications@pill-mate.app',
+      publicKey: vapidData.public_key,
+      privateKey: vapidPrivateJwk.d, // The raw private key 'd' parameter
+    });
 
     let sentCount = 0;
     const failedEndpoints: string[] = [];
@@ -340,24 +185,42 @@ Deno.serve(async (req) => {
 
       for (const sub of subscriptions) {
         try {
-          console.log(`Sending push to endpoint: ${sub.endpoint.substring(0, 60)}...`);
-          console.log(`Payload: ${payload.substring(0, 100)}`);
-          await sendWebPush(
-            { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
-            payload,
-            { publicKey: vapidData.public_key, privateKey: vapidData.private_key }
+          console.log(`Sending to: ${sub.endpoint.substring(0, 80)}...`);
+
+          const { headers: pushHeaders, body: pushBody, endpoint } = await buildPushHTTPRequest(
+            {
+              endpoint: sub.endpoint,
+              keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth,
+              },
+            },
+            vapidKeys,
+            new TextEncoder().encode(payload),
+            { ttl: 86400 }
           );
-          console.log(`✅ Push sent successfully!`);
+
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: pushHeaders,
+            body: pushBody,
+          });
+
+          if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Push failed [${response.status}]: ${text}`);
+          }
+
+          console.log(`✅ Push sent successfully (${response.status})`);
           sentCount++;
         } catch (error) {
-          console.error(`❌ Failed to send push:`, error.message);
+          console.error(`❌ Push error: ${error.message}`);
           if (error.message.includes('410') || error.message.includes('404')) {
             failedEndpoints.push(sub.endpoint);
           }
         }
       }
 
-      // Log as sent (for dedup in client mode)
       if (!isCron) {
         await supabase.from('notification_log').upsert({ notification_key: notification.key });
       }
@@ -373,6 +236,8 @@ Deno.serve(async (req) => {
     const twoDaysAgo = new Date(now.getTime() - 2 * 86400000).toISOString();
     await supabase.from('notification_log').delete().lt('sent_at', twoDaysAgo);
     await supabase.from('pending_reminders').delete().eq('sent', true).lt('trigger_at', twoDaysAgo);
+
+    console.log(`Done: sent=${sentCount}, checked=${notifications.length}`);
 
     return new Response(JSON.stringify({ sent: sentCount, checked: notifications.length, mode: isCron ? 'cron' : 'client' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
