@@ -334,6 +334,13 @@ const Index = () => {
         />
       )}
       <InstallBanner />
+
+      <ImportDataDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        onImportMedications={importMedications}
+        onImportAppointments={importAppointments}
+      />
       {showApptForm && (
         <AddAppointmentForm
           onSave={handleSaveAppt}
