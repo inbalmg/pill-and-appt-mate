@@ -21,9 +21,6 @@ interface ValidationResult {
   type: ImportType;
 }
 
-const MEDICATION_REQUIRED_FIELDS = ['name'];
-const APPOINTMENT_REQUIRED_FIELDS = ['type', 'date', 'time'];
-
 function generateId(): string {
   return v4Fallback();
 }
@@ -69,7 +66,11 @@ function validateMedication(row: any, index: number): { med: Medication | null; 
 
   let times: string[] = [];
   if (row.times) {
-    times = row.times.split(';').map((t: string) => t.trim()).filter(Boolean);
+    if (Array.isArray(row.times)) {
+      times = row.times;
+    } else {
+      times = row.times.split(';').map((t: string) => t.trim()).filter(Boolean);
+    }
     for (const t of times) {
       if (!/^\d{2}:\d{2}$/.test(t)) {
         errors.push(`שורה ${index + 1}: פורמט שעה לא חוקי "${t}" (נדרש HH:MM)`);
@@ -160,7 +161,8 @@ function validateData(data: any[], type: ImportType): ValidationResult {
 }
 
 export default function ImportDataDialog({ open, onClose, onImportMedications, onImportAppointments }: ImportDataDialogProps) {
-  const [validation, setValidation] = useState<ValidationResult | null>(null);
+  const [medsValidation, setMedsValidation] = useState<ValidationResult | null>(null);
+  const [apptsValidation, setApptsValidation] = useState<ValidationResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [fileName, setFileName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -168,7 +170,8 @@ export default function ImportDataDialog({ open, onClose, onImportMedications, o
   if (!open) return null;
 
   const reset = () => {
-    setValidation(null);
+    setMedsValidation(null);
+    setApptsValidation(null);
     setFileName('');
     if (fileRef.current) fileRef.current.value = '';
   };
@@ -178,50 +181,85 @@ export default function ImportDataDialog({ open, onClose, onImportMedications, o
     if (!file) return;
 
     setFileName(file.name);
+    setMedsValidation(null);
+    setApptsValidation(null);
+
     const text = await file.text();
 
     try {
-      let rows: any[];
-      let detectedType: ImportType = null;
-
       if (file.name.endsWith('.json')) {
         const parsed = JSON.parse(text);
-        rows = Array.isArray(parsed) ? parsed : parsed.medications || parsed.appointments || [];
-        if (parsed.medications) detectedType = 'medications';
-        else if (parsed.appointments) detectedType = 'appointments';
-        else if (rows.length > 0) {
-          const keys = Object.keys(rows[0]);
-          detectedType = detectType(keys);
+
+        // Handle combined JSON with both medications and appointments
+        if (parsed.medications && Array.isArray(parsed.medications)) {
+          const result = validateData(parsed.medications, 'medications');
+          setMedsValidation(result);
+        }
+        if (parsed.appointments && Array.isArray(parsed.appointments)) {
+          const result = validateData(parsed.appointments, 'appointments');
+          setApptsValidation(result);
+        }
+
+        // Handle plain array
+        if (!parsed.medications && !parsed.appointments) {
+          const rows = Array.isArray(parsed) ? parsed : [];
+          if (rows.length > 0) {
+            const keys = Object.keys(rows[0]);
+            const detectedType = detectType(keys);
+            if (detectedType) {
+              const result = validateData(rows, detectedType);
+              if (detectedType === 'medications') setMedsValidation(result);
+              else setApptsValidation(result);
+            } else {
+              setMedsValidation({ valid: false, data: [], errors: ['לא ניתן לזהות את סוג הנתונים'], type: null });
+            }
+          } else {
+            setMedsValidation({ valid: false, data: [], errors: ['הקובץ ריק או לא מכיל נתונים'], type: null });
+          }
+        }
+
+        // Check if nothing was found
+        if (!parsed.medications && !parsed.appointments && !Array.isArray(parsed)) {
+          setMedsValidation({ valid: false, data: [], errors: ['מבנה קובץ לא מזוהה'], type: null });
         }
       } else {
-        // CSV
-        const { headers, rows: csvRows } = parseCSV(text);
-        rows = csvRows;
-        detectedType = detectType(headers);
+        // CSV - single type only
+        const { headers, rows } = parseCSV(text);
+        if (rows.length === 0) {
+          setMedsValidation({ valid: false, data: [], errors: ['הקובץ ריק או לא מכיל נתונים'], type: null });
+          return;
+        }
+        const detectedType = detectType(headers);
+        const result = validateData(rows, detectedType);
+        if (detectedType === 'appointments') setApptsValidation(result);
+        else setMedsValidation(result);
       }
-
-      if (rows.length === 0) {
-        setValidation({ valid: false, data: [], errors: ['הקובץ ריק או לא מכיל נתונים'], type: null });
-        return;
-      }
-
-      const result = validateData(rows, detectedType);
-      setValidation(result);
     } catch {
-      setValidation({ valid: false, data: [], errors: ['שגיאה בקריאת הקובץ. ודא שהפורמט תקין (CSV או JSON).'], type: null });
+      setMedsValidation({ valid: false, data: [], errors: ['שגיאה בקריאת הקובץ. ודא שהפורמט תקין (CSV או JSON).'], type: null });
     }
   };
 
+  const hasValidMeds = medsValidation?.valid && medsValidation.data.length > 0;
+  const hasValidAppts = apptsValidation?.valid && apptsValidation.data.length > 0;
+  const allErrors = [
+    ...(medsValidation?.errors || []),
+    ...(apptsValidation?.errors || []),
+  ];
+
   const handleImport = async () => {
-    if (!validation?.valid || !validation.type) return;
+    if (!hasValidMeds && !hasValidAppts) return;
     setImporting(true);
     try {
-      if (validation.type === 'medications') {
-        await onImportMedications(validation.data);
-      } else {
-        await onImportAppointments(validation.data);
+      const results: string[] = [];
+      if (hasValidMeds) {
+        await onImportMedications(medsValidation!.data);
+        results.push(`${medsValidation!.data.length} תרופות`);
       }
-      toast.success(`יובאו ${validation.data.length} ${validation.type === 'medications' ? 'תרופות' : 'תורים'} בהצלחה`);
+      if (hasValidAppts) {
+        await onImportAppointments(apptsValidation!.data);
+        results.push(`${apptsValidation!.data.length} תורים`);
+      }
+      toast.success(`יובאו ${results.join(' ו-')} בהצלחה`);
       reset();
       onClose();
     } catch {
@@ -230,6 +268,8 @@ export default function ImportDataDialog({ open, onClose, onImportMedications, o
       setImporting(false);
     }
   };
+
+  const totalItems = (hasValidMeds ? medsValidation!.data.length : 0) + (hasValidAppts ? apptsValidation!.data.length : 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -259,30 +299,41 @@ export default function ImportDataDialog({ open, onClose, onImportMedications, o
         <input ref={fileRef} type="file" accept=".csv,.json" className="hidden" onChange={handleFile} />
 
         {/* Validation results */}
-        {validation && (
+        {(medsValidation || apptsValidation) && (
           <div className="mt-4 space-y-3">
-            {validation.valid && (
+            {hasValidMeds && (
               <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 flex items-start gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-green-700 dark:text-green-400">
-                    נמצאו {validation.data.length} {validation.type === 'medications' ? 'תרופות' : 'תורים'} תקינים
+                    נמצאו {medsValidation!.data.length} תרופות תקינות
                   </p>
                 </div>
               </div>
             )}
 
-            {validation.errors.length > 0 && (
+            {hasValidAppts && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 flex items-start gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                    נמצאו {apptsValidation!.data.length} תורים תקינים
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {allErrors.length > 0 && (
               <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex items-start gap-2">
                 <AlertCircle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-destructive mb-1">שגיאות:</p>
                   <ul className="text-xs text-destructive/80 space-y-0.5">
-                    {validation.errors.slice(0, 5).map((err, i) => (
+                    {allErrors.slice(0, 5).map((err, i) => (
                       <li key={i}>• {err}</li>
                     ))}
-                    {validation.errors.length > 5 && (
-                      <li>... ועוד {validation.errors.length - 5} שגיאות</li>
+                    {allErrors.length > 5 && (
+                      <li>... ועוד {allErrors.length - 5} שגיאות</li>
                     )}
                   </ul>
                 </div>
@@ -290,28 +341,41 @@ export default function ImportDataDialog({ open, onClose, onImportMedications, o
             )}
 
             {/* Preview */}
-            {validation.valid && validation.data.length > 0 && (
+            {hasValidMeds && (
               <div className="bg-muted/50 rounded-xl p-3">
-                <p className="text-xs text-muted-foreground mb-2">תצוגה מקדימה:</p>
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {validation.data.slice(0, 5).map((item, i) => (
+                <p className="text-xs text-muted-foreground mb-2">תרופות:</p>
+                <div className="space-y-1 max-h-24 overflow-y-auto">
+                  {medsValidation!.data.slice(0, 3).map((item: Medication, i: number) => (
                     <div key={i} className="text-xs bg-card rounded-lg p-2 border border-border">
-                      {validation.type === 'medications'
-                        ? `💊 ${item.name}${item.dosage ? ` - ${item.dosage}` : ''} (${item.times.join(', ')})`
-                        : `🏥 ${item.type} - ${item.date} ${item.time}`
-                      }
+                      💊 {item.name}{item.dosage ? ` - ${item.dosage}` : ''} ({item.times.join(', ')})
                     </div>
                   ))}
-                  {validation.data.length > 5 && (
-                    <p className="text-xs text-muted-foreground text-center">... ועוד {validation.data.length - 5}</p>
+                  {medsValidation!.data.length > 3 && (
+                    <p className="text-xs text-muted-foreground text-center">... ועוד {medsValidation!.data.length - 3}</p>
                   )}
                 </div>
               </div>
             )}
 
-            {validation.valid && (
+            {hasValidAppts && (
+              <div className="bg-muted/50 rounded-xl p-3">
+                <p className="text-xs text-muted-foreground mb-2">תורים:</p>
+                <div className="space-y-1 max-h-24 overflow-y-auto">
+                  {apptsValidation!.data.slice(0, 3).map((item: Appointment, i: number) => (
+                    <div key={i} className="text-xs bg-card rounded-lg p-2 border border-border">
+                      🏥 {item.type} - {item.date} {item.time}
+                    </div>
+                  ))}
+                  {apptsValidation!.data.length > 3 && (
+                    <p className="text-xs text-muted-foreground text-center">... ועוד {apptsValidation!.data.length - 3}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(hasValidMeds || hasValidAppts) && (
               <Button onClick={handleImport} disabled={importing} className="w-full">
-                {importing ? 'מייבא...' : `ייבא ${validation.data.length} ${validation.type === 'medications' ? 'תרופות' : 'תורים'}`}
+                {importing ? 'מייבא...' : `ייבא ${totalItems} רשומות`}
               </Button>
             )}
           </div>
@@ -323,7 +387,7 @@ export default function ImportDataDialog({ open, onClose, onImportMedications, o
           <div className="text-xs text-muted-foreground/80 space-y-1">
             <p><strong>תרופות CSV:</strong> name, dosage, times (מופרד ב-;), frequency, startDate</p>
             <p><strong>תורים CSV:</strong> type, date, time, doctor, location</p>
-            <p><strong>JSON:</strong> מערך אובייקטים או {"{"} medications/appointments: [...] {"}"}</p>
+            <p><strong>JSON:</strong> {"{"} medications: [...], appointments: [...] {"}"}</p>
           </div>
         </div>
       </div>
