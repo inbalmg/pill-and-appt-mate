@@ -23,7 +23,7 @@ const Index = () => {
   const {
     medications, appointments, completions, arrivals, loading,
     saveMedication, saveAppointment, deleteMedication, deleteAppointment,
-    toggleCompletion, toggleArrival,
+    toggleCompletion, toggleArrival, importMedications, importAppointments,
   } = useSupabaseData();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
