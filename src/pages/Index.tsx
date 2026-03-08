@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, addDays, isSameDay, isToday, isTomorrow, parseISO, getDay, startOfDay } from 'date-fns';
-import { Plus, Pill, Stethoscope, CalendarDays, Edit, Trash2, RotateCcw, Bell, BellOff } from 'lucide-react';
+import { Plus, Pill, Stethoscope, CalendarDays, Edit, Trash2, RotateCcw, Bell, BellOff, BookOpen } from 'lucide-react';
 import DateStrip from '@/components/DateStrip';
 import MedicationCard from '@/components/MedicationCard';
 import AppointmentCard from '@/components/AppointmentCard';
 import AddMedicationForm from '@/components/AddMedicationForm';
 import AddAppointmentForm from '@/components/AddAppointmentForm';
+import CalendarTab from '@/components/CalendarTab';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -244,8 +245,12 @@ const Index = () => {
           </span>
         </h1>
 
-        <Tabs defaultValue="medications" dir="rtl" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 mb-3">
+        <Tabs defaultValue="journal" dir="rtl" className="w-full">
+          <TabsList className="w-full grid grid-cols-3 mb-3">
+            <TabsTrigger value="journal" className="flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4" />
+              יומן
+            </TabsTrigger>
             <TabsTrigger value="medications" className="flex items-center gap-1.5">
               <Pill className="w-4 h-4" />
               תרופות
@@ -255,6 +260,16 @@ const Index = () => {
               {dailyAppointments.length > 0 ? `תורים (${dailyAppointments.length})` : 'תורים'}
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="journal">
+            <CalendarTab
+              appointments={appointments}
+              onSelectDate={(date) => {
+                setSelectedDate(date);
+                setRangeStart(addDays(date, -2));
+              }}
+            />
+          </TabsContent>
 
           <TabsContent value="medications">
             {dailyMedInstances.length === 0 ? (
