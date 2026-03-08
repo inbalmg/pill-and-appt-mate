@@ -3,8 +3,9 @@ export interface Medication {
   name: string;
   dosage?: string;
   times: string[]; // e.g. ["08:00", "20:00"]
-  frequency: 'daily' | 'weekly' | 'once';
+  frequency: 'daily' | 'weekly' | 'once' | 'every_x_days';
   weekDay?: number; // 0-6 for weekly
+  intervalDays?: number; // for 'every_x_days' frequency
   startDate: string; // YYYY-MM-DD
   endDate?: string; // YYYY-MM-DD
   notes: string;

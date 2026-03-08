@@ -104,22 +104,23 @@ const Index = () => {
       if (selDateStr < med.startDate) return;
       if (med.endDate && selDateStr > med.endDate) return;
 
+      let active = false;
       if (med.frequency === 'daily') {
+        active = true;
+      } else if (med.frequency === 'weekly') {
+        active = getDay(selDate) === med.weekDay;
+      } else if (med.frequency === 'once') {
+        active = selDateStr === med.startDate;
+      } else if (med.frequency === 'every_x_days' && med.intervalDays) {
+        const start = startOfDay(parseISO(med.startDate));
+        const diff = Math.round((startOfDay(selDate).getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        active = diff >= 0 && diff % med.intervalDays === 0;
+      }
+
+      if (active) {
         med.times.forEach(time => {
           instances.push({ medicationId: med.id, time, medication: med });
         });
-      } else if (med.frequency === 'weekly') {
-        if (getDay(selDate) === med.weekDay) {
-          med.times.forEach(time => {
-            instances.push({ medicationId: med.id, time, medication: med });
-          });
-        }
-      } else if (med.frequency === 'once') {
-        if (selDateStr === med.startDate) {
-          med.times.forEach(time => {
-            instances.push({ medicationId: med.id, time, medication: med });
-          });
-        }
       }
     });
 

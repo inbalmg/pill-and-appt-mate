@@ -17,8 +17,9 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
   const [name, setName] = useState(editingMedication?.name || '');
   const [dosage, setDosage] = useState(editingMedication?.dosage || '');
   const [times, setTimes] = useState<string[]>(editingMedication?.times || ['08:00']);
-  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'once'>(editingMedication?.frequency || 'daily');
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'once' | 'every_x_days'>(editingMedication?.frequency || 'daily');
   const [weekDay, setWeekDay] = useState(editingMedication?.weekDay ?? 0);
+  const [intervalDays, setIntervalDays] = useState(editingMedication?.intervalDays ?? 2);
   const [startDate, setStartDate] = useState(editingMedication?.startDate || new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(editingMedication?.endDate || '');
   const [notes, setNotes] = useState(editingMedication?.notes || '');
@@ -44,6 +45,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
     if (!startDate) errs.push('תאריך התחלה חובה');
     if (endDate && startDate && endDate < startDate) errs.push('תאריך סיום חייב להיות אחרי תאריך ההתחלה');
     if (frequency === 'once' && endDate && startDate !== endDate) errs.push('באירוע חד פעמי התאריכים חייבים להיות זהים');
+    if (frequency === 'every_x_days' && (!intervalDays || intervalDays < 2)) errs.push('מרווח ימים חייב להיות 2 לפחות');
 
     // Check duplicate times
     const uniqueTimes = new Set(times);
@@ -64,6 +66,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
       times,
       frequency,
       weekDay: frequency === 'weekly' ? weekDay : undefined,
+      intervalDays: frequency === 'every_x_days' ? intervalDays : undefined,
       startDate,
       endDate: endDate || undefined,
       notes: notes.trim(),
@@ -135,6 +138,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
               {[
                 { val: 'daily' as const, label: 'יומי' },
                 { val: 'weekly' as const, label: 'שבועי' },
+                { val: 'every_x_days' as const, label: 'כל X ימים' },
                 { val: 'once' as const, label: 'חד פעמי' },
               ].map(({ val, label }) => (
                 <button
@@ -155,6 +159,23 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
               ))}
             </div>
           </div>
+
+          {frequency === 'every_x_days' && (
+            <div>
+              <Label>כל כמה ימים?</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">כל</span>
+                <Input
+                  type="number"
+                  value={intervalDays}
+                  onChange={(e) => setIntervalDays(Math.max(2, Number(e.target.value)))}
+                  min={2}
+                  className="w-20 text-center"
+                />
+                <span className="text-sm text-muted-foreground">ימים</span>
+              </div>
+            </div>
+          )}
 
           {frequency === 'weekly' && (
             <div>

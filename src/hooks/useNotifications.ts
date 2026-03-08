@@ -131,6 +131,12 @@ export function useNotifications() {
           if (med.frequency === 'daily') shouldInclude = true;
           else if (med.frequency === 'weekly' && med.weekDay === dayOfWeek) shouldInclude = true;
           else if (med.frequency === 'once' && dateStr === med.startDate) shouldInclude = true;
+          else if (med.frequency === 'every_x_days' && med.intervalDays) {
+            const start = new Date(med.startDate + 'T00:00:00');
+            const current = new Date(dateStr + 'T00:00:00');
+            const diff = Math.round((current.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+            shouldInclude = diff >= 0 && diff % med.intervalDays === 0;
+          }
 
           if (!shouldInclude) continue;
 
