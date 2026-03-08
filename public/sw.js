@@ -20,8 +20,8 @@ self.addEventListener('push', function(event) {
   const isMed = data.type === 'med';
   const options = {
     body: data.body,
-    icon: data.icon || '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: data.icon || '/pwa-192x192.png',
+    badge: '/pwa-192x192.png',
     vibrate: isMed ? [200, 100, 200] : [300, 150, 300],
     tag: data.tag || 'default',
     requireInteraction: true,
