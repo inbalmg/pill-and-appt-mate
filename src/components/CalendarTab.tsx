@@ -54,11 +54,13 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
   }, [currentDate, viewMode]);
 
   const navigatePrev = () => {
+    setSelectedDay(null);
     if (viewMode === 'monthly') setCurrentDate(subMonths(currentDate, 1));
     else setCurrentDate(subWeeks(currentDate, 1));
   };
 
   const navigateNext = () => {
+    setSelectedDay(null);
     if (viewMode === 'monthly') setCurrentDate(addMonths(currentDate, 1));
     else setCurrentDate(addWeeks(currentDate, 1));
   };
