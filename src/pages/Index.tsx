@@ -37,6 +37,7 @@ const Index = () => {
   const [arrivals, setArrivals] = useLocalStorage<ArrivalRecord>('arrivals', {});
 
   const { isSubscribed, isLoading, subscribe, unsubscribe, startNotificationChecker } = useNotifications();
+  const { canInstall, install } = useInstallPrompt();
 
   // Start notification checker when subscribed
   useEffect(() => {
