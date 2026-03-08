@@ -259,7 +259,7 @@ const Index = () => {
               <Pill className="w-4 h-4" />
               תרופות
             </TabsTrigger>
-            <TabsTrigger value="appointments" className="flex items-center gap-1.5 data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400 data-[state=active]:shadow-sm">
+            <TabsTrigger value="appointments" className="flex items-center gap-1.5 data-[state=active]:text-purple data-[state=active]:shadow-sm">
               <Stethoscope className="w-4 h-4" />
               {dailyAppointments.length > 0 ? `תורים (${dailyAppointments.length})` : 'תורים'}
             </TabsTrigger>
