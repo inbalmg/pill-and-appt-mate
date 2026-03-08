@@ -15,11 +15,17 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className }) =
 
   const [tempHour, setTempHour] = useState(hour);
   const [tempMinute, setTempMinute] = useState(minute);
+  const [editingHour, setEditingHour] = useState(false);
+  const [editingMinute, setEditingMinute] = useState(false);
+  const [hourInput, setHourInput] = useState('');
+  const [minuteInput, setMinuteInput] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setTempHour(hour);
       setTempMinute(minute);
+      setEditingHour(false);
+      setEditingMinute(false);
     }
   }, [isOpen]);
 
@@ -27,6 +33,18 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className }) =
   const decHour = () => setTempHour((prev) => (prev - 1 + 24) % 24);
   const incMinute = () => setTempMinute((prev) => (prev + 5) % 60);
   const decMinute = () => setTempMinute((prev) => (prev - 5 + 60) % 60);
+
+  const handleHourInputBlur = () => {
+    const val = parseInt(hourInput, 10);
+    if (!isNaN(val) && val >= 0 && val <= 23) setTempHour(val);
+    setEditingHour(false);
+  };
+
+  const handleMinuteInputBlur = () => {
+    const val = parseInt(minuteInput, 10);
+    if (!isNaN(val) && val >= 0 && val <= 59) setTempMinute(val);
+    setEditingMinute(false);
+  };
 
   const handleConfirm = () => {
     onChange(`${String(tempHour).padStart(2, '0')}:${String(tempMinute).padStart(2, '0')}`);
