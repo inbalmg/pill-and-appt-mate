@@ -143,7 +143,7 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ appointments, onSelectDate })
                   ${isSelected ? 'bg-primary text-primary-foreground' : isSaturday ? 'bg-destructive/10 hover:bg-destructive/20' : 'hover:bg-muted'}
                 `}
               >
-                <span className={`text-xs font-medium ${isSelected ? 'text-primary-foreground' : isSaturday ? 'text-destructive' : ''}`}>
+                <span className={`text-xs ${dayAppts.length > 0 ? 'font-bold' : 'font-medium'} ${isSelected ? 'text-primary-foreground' : isSaturday ? 'text-destructive' : ''}`}>
                   {format(day, 'd')}
                 </span>
                 {dayAppts.length > 0 && (
