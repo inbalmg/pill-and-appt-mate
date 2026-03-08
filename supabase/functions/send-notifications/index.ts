@@ -251,6 +251,9 @@ Deno.serve(async (req) => {
     // Check medications
     if (medications) {
       for (const med of medications) {
+        // Skip medications without a reminder setting
+        if (!med.reminderMinutes && med.reminderMinutes !== 0) continue;
+        if (med.reminderMinutes <= 0) continue;
         if (todayStr < med.startDate) continue;
         if (med.endDate && todayStr > med.endDate) continue;
 
