@@ -82,12 +82,12 @@ const AddAppointmentForm: React.FC<AddAppointmentFormProps> = ({ onSave, onClose
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>תאריך *</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1" />
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 h-10 min-h-[2.5rem] appearance-none" />
             </div>
             <div>
               <Label>שעה *</Label>
               <div className="mt-1">
-                <TimePicker value={time} onChange={setTime} />
+                <TimePicker value={time} onChange={setTime} className="h-10 min-h-[2.5rem]" />
               </div>
             </div>
           </div>
