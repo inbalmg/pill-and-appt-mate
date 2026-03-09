@@ -207,7 +207,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
               <Input type="date" value={startDate} onChange={(e) => {
                 setStartDate(e.target.value);
                 if (frequency === 'once') setEndDate(e.target.value);
-              }} className="mt-1" />
+              }} className="mt-1 h-10 min-h-[2.5rem] appearance-none" />
             </div>
             <div>
               <Label>תאריך סיום</Label>
@@ -215,7 +215,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onClose, 
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="mt-1"
+                className="mt-1 h-10 min-h-[2.5rem] appearance-none"
                 disabled={frequency === 'once'}
               />
             </div>
