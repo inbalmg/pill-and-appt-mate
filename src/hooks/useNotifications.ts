@@ -116,8 +116,11 @@ export function useNotifications() {
           body: { endpoint },
         });
       }
-      // Clear pending reminders when bell is turned off
-      await supabase.from('pending_reminders' as any).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      // Clear this user's pending reminders when the bell is turned off.
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('pending_reminders' as any).delete().eq('user_id', user.id);
+      }
       setIsSubscribed(false);
     } catch (error) {
       console.error('Unsubscribe error:', error);
@@ -127,8 +130,12 @@ export function useNotifications() {
   // Sync reminders to DB so cron can send them even when app is closed
   const syncRemindersToDb = useCallback(async (medications: Medication[], appointments: Appointment[]) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const now = new Date();
       const reminders: Array<{
+        user_id: string;
         notification_key: string;
         trigger_at: string;
         title: string;
@@ -174,6 +181,7 @@ export function useNotifications() {
 
             const key = `med_${med.id}_${time}_${dateStr}`;
             reminders.push({
+              user_id: user.id,
               notification_key: key,
               trigger_at: triggerAt.toISOString(),
               title: '💊 תזכורת תרופה',
@@ -198,6 +206,7 @@ export function useNotifications() {
 
           const key = `appt_${appt.id}_${dateStr}`;
           reminders.push({
+            user_id: user.id,
             notification_key: key,
             trigger_at: triggerAt.toISOString(),
             title: '🏥 תזכורת תור',
@@ -212,7 +221,7 @@ export function useNotifications() {
       if (reminders.length > 0) {
         const { error } = await supabase
           .from('pending_reminders' as any)
-          .upsert(reminders as any, { onConflict: 'notification_key', ignoreDuplicates: true });
+          .upsert(reminders as any, { onConflict: 'user_id,notification_key', ignoreDuplicates: true });
         if (error) console.error('Sync reminders error:', error);
       }
     } catch (error) {
@@ -264,12 +273,16 @@ export function useNotifications() {
       return;
     }
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const now = new Date();
       const triggerAt = new Date(now.getTime() + 5000); // 5 seconds from now
       const key = `test_${Date.now()}`;
       const { error } = await supabase
         .from('pending_reminders' as any)
         .insert({
+          user_id: user.id,
           notification_key: key,
           trigger_at: triggerAt.toISOString(),
           title: '🔔 התראת בדיקה',

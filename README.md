@@ -1,73 +1,97 @@
-# Welcome to your Lovable project
+# ניהול תרופות ותורים
 
-## Project info
+אפליקציית Web (PWA) בעברית לניהול טיפול רפואי אישי — תרופות, מינונים, שעות לקיחה, תורים רפואיים ותזכורות Push.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## טכנולוגיות
 
-## How can I edit this code?
+| שכבה | טכנולוגיה |
+|---|---|
+| Build | Vite 5 + `@vitejs/plugin-react-swc` |
+| שפה | TypeScript 5 |
+| UI | React 18, shadcn/ui (Radix), Tailwind CSS |
+| Routing | react-router-dom 6 |
+| Data | @tanstack/react-query |
+| Backend | Supabase (PostgreSQL + Auth + Edge Functions) |
+| PWA | vite-plugin-pwa |
 
-There are several ways of editing your application.
+## הרצה מקומית
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+דרישות: Node.js 18+ ו-npm.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# 1. התקנת התלויות (פעם אחת)
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 2. הגדרת משתני הסביבה
+#    העתק את .env.example ל-.env ומלא את הערכים מפרויקט ה-Supabase שלך
+#    (Supabase Dashboard -> Project Settings -> API)
+cp .env.example .env
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 3. הפעלת שרת הפיתוח
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+האפליקציה תעלה על http://localhost:8080
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## פקודות נוספות
 
-**Use GitHub Codespaces**
+```sh
+npm run build      # build לייצור
+npm run preview    # תצוגה מקדימה של ה-build
+npm run lint       # בדיקת ESLint
+npm run test       # הרצת בדיקות (Vitest)
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## מבנה הפרויקט
 
-## What technologies are used for this project?
+```
+src/
+  pages/                  Index (האפליקציה), Auth (התחברות), NotFound
+  components/             קומפוננטות עסקיות (תרופות, תורים, לוח שנה, ייבוא)
+  components/ui/          פרימיטיבים של shadcn/ui
+  hooks/                  useAuth, useSupabaseData, useNotifications ועוד
+  integrations/supabase/  יצירת ה-client (נוצר אוטומטית) וטיפוסים
+  types/                  טיפוסי Medication ו-Appointment
+supabase/
+  migrations/             סכימת בסיס הנתונים
+  functions/              Edge Functions: push-subscribe, send-notifications
+```
 
-This project is built with:
+## בסיס הנתונים
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+| טבלה | תוכן |
+|---|---|
+| `medications` | תרופות: שם, מינון, שעות, תדירות, תאריכים |
+| `appointments` | תורים רפואיים |
+| `completions` | תיעוד לקיחת תרופה |
+| `arrivals` | תיעוד הגעה לתור |
+| `pending_reminders` | תזכורות שממתינות לשליחה |
+| `push_subscriptions` | מנויי Push של הדפדפן |
+| `notification_log` | מניעת כפילויות בהתראות |
+| `vapid_keys` | מפתחות VAPID ל-Web Push |
 
-## How can I deploy this project?
+כל טבלאות המשתמש מוגנות ב-Row Level Security לפי `auth.uid()`.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## ייבוא נתונים
 
-## Can I connect a custom domain to my Lovable project?
+האפליקציה תומכת בייבוא מקובץ CSV או JSON דרך מסך "ייבוא נתונים":
 
-Yes, you can!
+```json
+{
+  "medications": [
+    { "name": "Nexium", "dosage": "20mg", "times": ["07:00"], "frequency": "daily", "startDate": "2026-03-06" }
+  ],
+  "appointments": [
+    { "type": "בדיקת דם", "date": "2026-03-19", "time": "08:00", "location": "מעבדה" }
+  ]
+}
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- `times` — מערך בפורמט `HH:MM` (ב-CSV: מופרד ב-`;`)
+- `frequency` — אחד מתוך `daily`, `weekly`, `once`, `every_x_days`
+- תאריכים בפורמט `YYYY-MM-DD`
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## אבטחה
+
+- קובץ `.env` אינו נכלל ב-git. אין לשמור בו מפתחות ב-repository.
+- ה-Edge Functions משתמשות ב-service role key שנשמר בצד השרת בלבד.
